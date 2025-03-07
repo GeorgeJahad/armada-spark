@@ -19,6 +19,8 @@
 # This script builds and pushes docker images when run from a release of Spark
 # with Kubernetes support.
 
+# Originally copied from: https://raw.githubusercontent.com/apache/spark/dd0a41a950a8070a767cce25d27299699cf16d83/bin/docker-image-tool.sh
+
 function error {
   echo "$@" 1>&2
   exit 1
@@ -29,7 +31,7 @@ if [ -z "${SPARK_HOME}" ]; then
 fi
 . "${SPARK_HOME}/bin/load-spark-env.sh"
 
-CTX_DIR="$SPARK_HOME/target/tmp/docker"
+CTX_DIR="$ARMADA_SPARK_HOME/target/tmp/docker"
 
 function is_dev_build {
   [ ! -f "$SPARK_HOME/RELEASE" ]
@@ -37,7 +39,7 @@ function is_dev_build {
 
 function cleanup_ctx_dir {
   if is_dev_build; then
-    rm -rf "$CTX_DIR"
+    echo rm -rf "$CTX_DIR"
   fi
 }
 
@@ -93,7 +95,6 @@ function create_dev_build_context {(
   cp -r "resource-managers/kubernetes/docker/src/main/dockerfiles" \
     "$BASE_CTX/kubernetes/dockerfiles"
 
-  cp -r "assembly/target/scala-$SPARK_SCALA_VERSION/jars" "$BASE_CTX/jars"
   cp -r "resource-managers/kubernetes/integration-tests/tests" \
     "$BASE_CTX/kubernetes/tests"
 

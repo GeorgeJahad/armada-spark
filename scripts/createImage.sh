@@ -6,7 +6,10 @@ source scripts/functions.sh
 # generate armada docker image
 #  run like so: scripts/createImage.sh /home/gbj/incoming/spark testing 2.13
 SCALA_BIN_VERSION=`get_scala_bin_version $SPARK_HOME`
+echo gbj $SCALA_BIN_VERSION
 SPARK_VERSION=`get_spark_version $SPARK_HOME`
+ARMADA_SPARK_HOME=`pwd`
+BASE_CTX="$ARMADA_SPARK_HOME/target/tmp/docker/base"
 
 cp versions/${SPARK_VERSION}/pom.xml pom.xml
 cp versions/${SPARK_VERSION}/SparkSubmit.scala src/main/scala/org/apache/spark/deploy/ArmadaSparkSubmit.scala
@@ -47,22 +50,22 @@ if [[ $SPARK_VERSION == "3.3.4" ]]; then
     dependencies+=("${spark_v334_dependencies[@]}")
 fi
 
+mkdir -p $BASE_CTX
+cp -r $SPARK_HOME/assembly/target/scala-$SCALA_BIN_VERSION/jars $BASE_CTX/jars
 
-if [ -e  $SPARK_HOME/assembly/target/scala-${SCALA_BIN_VERSION}/jars/guava-14.0.1.jar ]; then
-    rm $SPARK_HOME/assembly/target/scala-${SCALA_BIN_VERSION}/jars/guava-14.0.1.jar
+if [ -e $BASE_CTX/jars/guava-14.0.1.jar ]; then
+    rm  $BASE_CTX/jars/guava-14.0.1.jar
 fi
 
-if [ -e  $SPARK_HOME/assembly/target/scala-${SCALA_BIN_VERSION}/jars/protobuf-java-2.5.0.jar ]; then
-    rm $SPARK_HOME/assembly/target/scala-${SCALA_BIN_VERSION}/jars/protobuf-java-2.5.0.jar
+if [ -e $BASE_CTX/jars/protobuf-java-2.5.0.jar ]; then
+    rm  $BASE_CTX/jars/protobuf-java-2.5.0.jar
 fi
 
 
 # Copy dependencies to the docker image directory
-cp "${dependencies[@]}" $SPARK_HOME/assembly/target/scala-${SCALA_BIN_VERSION}/jars/
+cp "${dependencies[@]}" $BASE_CTX
 
 
 # Make the image
 cd $SPARK_HOME
-#cp ./bin/docker-image-tool.sh /tmp
-chmod 755 /tmp/docker-image-tool.sh
-SPARK_HOME=$SPARK_HOME /tmp/docker-image-tool.sh -t $IMAGE_NAME build
+ARMADA_SPARK_HOME=$ARMADA_SPARK_HOME SPARK_HOME=$SPARK_HOME $ARMADA_SPARK_HOME/scripts/docker-image-tool.sh -t $IMAGE_NAME build

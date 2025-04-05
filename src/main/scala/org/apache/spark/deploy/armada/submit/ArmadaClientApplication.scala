@@ -34,9 +34,11 @@ import io.fabric8.kubernetes.client.Watcher.Action
 import _root_.io.armadaproject.armada.ArmadaClient
 import k8s.io.api.core.v1.generated._
 import k8s.io.apimachinery.pkg.api.resource.generated.Quantity
+import org.apache.spark.SparkException
 import org.apache.spark.SparkConf
 import org.apache.spark.deploy.SparkApplication
-import org.apache.spark.deploy.armada.Config.{ARMADA_HEALTH_CHECK_TIMEOUT, ARMADA_LOOKOUTURL}
+import org.apache.spark.deploy.armada.Config._
+import org.apache.spark.internal.config._
 
 /* import org.apache.spark.deploy.k8s._
 import org.apache.spark.deploy.k8s.Config._
@@ -324,10 +326,14 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       case _ => Seq()
     }
 
+    val driverContainerImage = conf.get(DRIVER_CONTAINER_IMAGE)
+      .getOrElse(throw new SparkException("Must specify the driver container image"))
+
+
     val driverContainer = Container()
       .withName("spark-driver")
       .withImagePullPolicy("IfNotPresent")
-      .withImage(conf.get("spark.kubernetes.container.image"))
+      .withImage(driverContainerImage)
       .withEnv(envVars)
       .withCommand(Seq("/opt/entrypoint.sh"))
       .withVolumeMounts(configGenerator.getVolumeMounts)
@@ -338,11 +344,11 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           "--class",
           clientArguments.mainClass,
           "--master",
-          "local://armada://armada-server.armada.svc.cluster.local:50051",
-          "--conf",
-          s"spark.kubernetes.container.image=${conf.get("spark.kubernetes.container.image")}",
+          s"${conf.get(ARMADA_REMOTE_MASTER).getOrElse(conf.get("spark.master"))}",
           "--conf",
           "spark.driver.port=7078",
+          "--conf",
+          s"${CONTAINER_IMAGE.key}=$driverContainerImage",
           "--conf",
           "spark.driver.host=$(SPARK_DRIVER_BIND_ADDRESS)"
 
@@ -351,14 +357,14 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       .withResources( // FIXME: What are reasonable requests/limits for spark drivers?
         ResourceRequirements(
           limits = Map(
-            "memory" -> Quantity(Option("450Mi")),
-            "ephemeral-storage" -> Quantity(Option("512Mi")),
-            "cpu" -> Quantity(Option("200m"))
+            "memory" -> Quantity(Option(conf.get(ARMADA_DRIVER_LIMIT_MEMORY).toString)),
+            "ephemeral-storage" -> Quantity(Option(conf.get(ARMADA_DRIVER_LIMIT_EPHEMERAL_STORAGE).toString)),
+            "cpu" -> Quantity(Option(conf.get(ARMADA_DRIVER_LIMIT_CORES).toString))
           ),
           requests = Map(
-            "memory" -> Quantity(Option("450Mi")),
-            "ephemeral-storage" -> Quantity(Option("512Mi")),
-            "cpu" -> Quantity(Option("200m"))
+            "memory" -> Quantity(Option(conf.get(ARMADA_DRIVER_REQUEST_MEMORY).toString)),
+            "ephemeral-storage" -> Quantity(Option(conf.get(ARMADA_DRIVER_REQUEST_EPHEMERAL_STORAGE).toString)),
+            "cpu" -> Quantity(Option(conf.get(ARMADA_DRIVER_REQUEST_CORES).toString))
           )
         )
       )
@@ -372,12 +378,11 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     val driverJob = api.submit
       .JobSubmitRequestItem()
       .withPriority(0)
-      .withNamespace("default")
+      .withNamespace(conf.get(ARMADA_NAMESPACE))
       .withPodSpec(podSpec)
       .withAnnotations(configGenerator.getAnnotations)
 
-    // FIXME: Plumb config for queue, job-set-id
-    val jobSubmitResponse = armadaClient.submitJobs("test", "driver", Seq(driverJob))
+    val jobSubmitResponse = armadaClient.submitJobs(conf.get(ARMADA_QUEUE), conf.get(ARMADA_JOB_SET_ID), Seq(driverJob))
 
     for (respItem <- jobSubmitResponse.jobResponseItems) {
       val error = if (respItem.error == "") "None" else respItem.error

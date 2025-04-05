@@ -23,6 +23,7 @@ docker run --rm --network host $IMAGE_NAME \
     --name spark-pi \
     --class org.apache.spark.examples.SparkPi \
     --conf spark.executor.instances=2 \
-    --conf spark.kubernetes.container.image=$IMAGE_NAME \
+    --conf spark.armada.queue=$ARMADA_QUEUE \
+    --conf spark.armada.container.image=$IMAGE_NAME \
     --conf spark.armada.lookouturl=$ARMADA_LOOKOUT_URL \
     local:///opt/spark/examples/jars/spark-examples_${SCALA_BIN_VERSION}-${SPARK_VERSION}.jar 100

@@ -94,7 +94,7 @@ private[spark] class ArmadaClusterSchedulerBackend(
     val executorContainer = Container()
       .withName("spark-executor")
       .withImagePullPolicy("IfNotPresent")
-      .withImage(conf.get("spark.kubernetes.container.image"))
+      .withImage(conf.get("spark.armada.container.image"))
       .withEnv(envVars ++ javaOptEnvVars)
       .withCommand(Seq("/opt/entrypoint.sh"))
       .withArgs(

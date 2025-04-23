@@ -25,5 +25,6 @@ docker run --rm --network host $IMAGE_NAME \
     --conf spark.executor.instances=2 \
     --conf spark.armada.queue=$ARMADA_QUEUE \
     --conf spark.armada.container.image=$IMAGE_NAME \
+    --conf spark.armada.remote.master=local://armada://armada-server.armada.svc.cluster.local:50051 \
     --conf spark.armada.lookouturl=$ARMADA_LOOKOUT_URL \
     local:///opt/spark/examples/jars/spark-examples_${SCALA_BIN_VERSION}-${SPARK_VERSION}.jar 100

@@ -143,64 +143,64 @@ private[spark] object Config {
       .version("1.0.0")
       .fallbackConf(DRIVER_CORES)
 
-  val ARMADA_DRIVER_LIMIT_MEMORY: ConfigEntry[Long] =
+  val ARMADA_DRIVER_LIMIT_MEMORY: ConfigEntry[String] =
     ConfigBuilder("spark.armada.driver.limit.memory")
       .doc("Specify the hard memory limit for the driver pod")
       .version("1.0.0")
-      .bytesConf(ByteUnit.MiB)
-      .createWithDefaultString("450m")
+      .stringConf
+      .createWithDefaultString("1Gi")
 
 
-  val ARMADA_DRIVER_REQUEST_MEMORY: ConfigEntry[Long] =
+  val ARMADA_DRIVER_REQUEST_MEMORY: ConfigEntry[String] =
     ConfigBuilder("spark.armada.driver.request.memory")
       .doc("Specify the memory request for the driver pod")
       .version("1.0.0")
-      .bytesConf(ByteUnit.MiB)
-      .createWithDefaultString("450m")
+      .stringConf
+      .createWithDefaultString("1Gi")
 
 
-  val ARMADA_EXECUTOR_LIMIT_MEMORY: ConfigEntry[Long] =
+  val ARMADA_EXECUTOR_LIMIT_MEMORY: ConfigEntry[String] =
     ConfigBuilder("spark.armada.executor.limit.memory")
       .doc("Specify the hard memory limit for each executor pod")
       .version("1.0.0")
-      .bytesConf(ByteUnit.MiB)
-      .createWithDefaultString("450m")
+      .stringConf
+      .createWithDefaultString("1Gi")
 
 
-  val ARMADA_EXECUTOR_REQUEST_MEMORY: ConfigEntry[Long] =
+  val ARMADA_EXECUTOR_REQUEST_MEMORY: ConfigEntry[String] =
     ConfigBuilder("spark.armada.executor.request.memory")
       .doc("Specify the memory request for each executor pod")
       .version("1.0.0")
-      .bytesConf(ByteUnit.MiB)
-      .createWithDefaultString("450m")
+      .stringConf
+      .createWithDefaultString("1Gi")
 
 
-  val ARMADA_DRIVER_LIMIT_EPHEMERAL_STORAGE: ConfigEntry[Long] =
+  val ARMADA_DRIVER_LIMIT_EPHEMERAL_STORAGE: ConfigEntry[String] =
     ConfigBuilder("spark.armada.driver.limit.ephemeral.storage")
       .doc("Specify the hard ephemeral storage limit for the driver pod")
       .version("1.0.0")
-      .bytesConf(ByteUnit.MiB)
-      .createWithDefaultString("512m")
+      .stringConf
+      .createWithDefaultString("512Mi")
   
-  val ARMADA_DRIVER_REQUEST_EPHEMERAL_STORAGE: ConfigEntry[Long] =
+  val ARMADA_DRIVER_REQUEST_EPHEMERAL_STORAGE: ConfigEntry[String] =
     ConfigBuilder("spark.armada.driver.request.ephemeral.storage")
       .doc("Specify the ephemeral storage request for the driver pod")
       .version("1.0.0")
-      .bytesConf(ByteUnit.MiB)
-      .createWithDefaultString("512m")
+      .stringConf
+      .createWithDefaultString("512Mi")
 
-  val ARMADA_EXECUTOR_LIMIT_EPHEMERAL_STORAGE: ConfigEntry[Long] =
+  val ARMADA_EXECUTOR_LIMIT_EPHEMERAL_STORAGE: ConfigEntry[String] =
     ConfigBuilder("spark.armada.executor.limit.ephemeral.storage")
       .doc("Specify the hard ephemeral storage limit for each executor pod")
       .version("1.0.0")
-      .bytesConf(ByteUnit.MiB)
-      .createWithDefaultString("512m")
+      .stringConf
+      .createWithDefaultString("512Mi")
 
-  val ARMADA_EXECUTOR_REQUEST_EPHEMERAL_STORAGE: ConfigEntry[Long] =
+  val ARMADA_EXECUTOR_REQUEST_EPHEMERAL_STORAGE: ConfigEntry[String] =
     ConfigBuilder("spark.armada.executor.request.ephemeral.storage")
       .doc("Specify the ephemeral storage request for each executor pod")
       .version("1.0.0")
-      .bytesConf(ByteUnit.MiB)
-      .createWithDefaultString("512m")
+      .stringConf
+      .createWithDefaultString("512Mi")
 
 }

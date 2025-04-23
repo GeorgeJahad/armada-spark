@@ -307,8 +307,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     ()
   }
 
-  private def submitDriverJob(armadaClient: ArmadaClient, clientArguments: ClientArguments,
-    conf: SparkConf): String = {
+  private[spark] def getDriverContainer(clientArguments: ClientArguments, conf: SparkConf, volumeMounts: Seq[VolumeMount] ): Container = {
     val source = EnvVarSource().withFieldRef(ObjectFieldSelector()
       .withApiVersion("v1").withFieldPath("status.podIP"))
     val envVars = Seq(
@@ -317,8 +316,6 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       new EnvVar().withName("EXTERNAL_CLUSTER_SUPPORT_ENABLED").withValue("true")
     )
 
-    val configGenerator =
-      new ConfigGenerator("armada-spark-config", conf)
     val primaryResource = clientArguments.mainAppResource match {
       case JavaMainAppResource(Some(resource)) => Seq(resource)
       case PythonMainAppResource(resource) => Seq(resource)
@@ -330,13 +327,12 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       .getOrElse(throw new SparkException("Must specify the driver container image"))
 
 
-    val driverContainer = Container()
-      .withName("spark-driver")
+    Container().withName("spark-driver")
       .withImagePullPolicy("IfNotPresent")
       .withImage(driverContainerImage)
       .withEnv(envVars)
       .withCommand(Seq("/opt/entrypoint.sh"))
-      .withVolumeMounts(configGenerator.getVolumeMounts)
+      .withVolumeMounts(volumeMounts)
       .withArgs(
         Seq(
           "driver",
@@ -368,11 +364,16 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           )
         )
       )
+  }
 
+  private def submitDriverJob(armadaClient: ArmadaClient, clientArguments: ClientArguments,
+    conf: SparkConf): String = {
+    val configGenerator =
+      new ConfigGenerator("armada-spark-config", conf)
     val podSpec = PodSpec()
       .withTerminationGracePeriodSeconds(0)
       .withRestartPolicy("Never")
-      .withContainers(Seq(driverContainer))
+      .withContainers(Seq(getDriverContainer(clientArguments, conf, configGenerator.getVolumeMounts)))
       .withVolumes(configGenerator.getVolumes)
 
     val driverJob = api.submit

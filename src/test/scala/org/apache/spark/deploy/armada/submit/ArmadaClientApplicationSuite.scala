@@ -25,27 +25,29 @@ import org.scalatest.funsuite.AnyFunSuite
 import java.nio.file.{Files, Path, StandardOpenOption}
 
 class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
-  private val sparkConf = new SparkConf(false)
-
+  val sparkConf = new SparkConf(false)
+  val imageName = "imageName"
+  val sparkMaster = "localhost"
+  val className = "testClass"
   before {
-    sparkConf.set("spark.armada.container.image", "testImage")
-    sparkConf.set("spark.master", "localhost")
+    sparkConf.set("spark.armada.container.image", imageName)
+    sparkConf.set("spark.master", sparkMaster)
   }
   test("Test get driver container") {
     val expectedString =
-     """|name: "spark-driver"
-        |image: "testImage"
+    s"""|name: "spark-driver"
+        |image: $imageName
         |command: "/opt/entrypoint.sh"
         |args: "driver"
         |args: "--verbose"
         |args: "--class"
-        |args: "SparkPi"
+        |args: $className
         |args: "--master"
-        |args: "localhost"
+        |args: $sparkMaster
         |args: "--conf"
         |args: "spark.driver.port=7078"
         |args: "--conf"
-        |args: "spark.armada.container.image=testImage"
+        |args: "spark.armada.container.image=$imageName"
         |args: "--conf"
         |args: "spark.driver.host=$(SPARK_DRIVER_BIND_ADDRESS)"
         |env {

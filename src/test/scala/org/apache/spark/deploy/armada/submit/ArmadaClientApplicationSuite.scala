@@ -29,6 +29,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   val imageName = "imageName"
   val sparkMaster = "localhost"
   val className = "testClass"
+  val bindAddress = "$(SPARK_DRIVER_BIND_ADDRESS)"
   before {
     sparkConf.set("spark.armada.container.image", imageName)
     sparkConf.set("spark.master", sparkMaster)
@@ -36,20 +37,20 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   test("Test get driver container") {
     val expectedString =
     s"""|name: "spark-driver"
-        |image: $imageName
+        |image: "$imageName"
         |command: "/opt/entrypoint.sh"
         |args: "driver"
         |args: "--verbose"
         |args: "--class"
-        |args: $className
+        |args: "$className"
         |args: "--master"
-        |args: $sparkMaster
+        |args: "$sparkMaster"
         |args: "--conf"
         |args: "spark.driver.port=7078"
         |args: "--conf"
         |args: "spark.armada.container.image=$imageName"
         |args: "--conf"
-        |args: "spark.driver.host=$(SPARK_DRIVER_BIND_ADDRESS)"
+        |args: "spark.driver.host=$bindAddress"
         |env {
         |  name: "SPARK_DRIVER_BIND_ADDRESS"
         |  valueFrom {
@@ -111,7 +112,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |""".stripMargin
 
     val aca = new ArmadaClientApplication()
-    val container = aca.getDriverContainer(ClientArguments.fromCommandLineArgs(Array("--main-class", "SparkPi")), sparkConf, Seq(new VolumeMount))
+    val container = aca.getDriverContainer(ClientArguments.fromCommandLineArgs(Array("--main-class", className)), sparkConf, Seq(new VolumeMount))
     val pstring = container.toProtoString
     assert(container.toProtoString == expectedString)
   }

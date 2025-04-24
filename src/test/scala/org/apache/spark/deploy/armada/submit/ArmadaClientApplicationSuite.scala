@@ -26,33 +26,14 @@ import java.nio.file.{Files, Path, StandardOpenOption}
 
 class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   private val sparkConf = new SparkConf(false)
-  private var tempDir: Path = _
-  private var sparkConfFile: Path = _
-  private var confDir: Path = _
-  private val prefix = "testPrefix"
-  private val configFileContents =
-      """
-        |spark.armada.container.image testImage
-        |spark.master localhost
-        |""".stripMargin
 
   before {
-    // Create temporary directory
-    tempDir = Files.createTempDirectory("spark-test-")
-    confDir = Files.createDirectory(tempDir.resolve("conf"))
-    // Create spark-defaults.conf inside it
-    sparkConfFile = confDir.resolve("spark-defaults.conf")
-
-    // Write sample config to the file
-    Files.writeString(sparkConfFile, configFileContents, StandardOpenOption.CREATE)
-
-    sparkConf.set("spark.home", tempDir.toString)
     sparkConf.set("spark.armada.container.image", "testImage")
     sparkConf.set("spark.master", "localhost")
   }
   test("Test get driver container") {
     val expectedString =
-    """|name: "spark-driver"
+     """|name: "spark-driver"
         |image: "testImage"
         |command: "/opt/entrypoint.sh"
         |args: "driver"
@@ -132,13 +113,5 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
     val pstring = container.toProtoString
     assert(container.toProtoString == expectedString)
   }
-
-  after {
-    // Clean up
-    Files.deleteIfExists(sparkConfFile)
-    Files.deleteIfExists(confDir)
-    Files.deleteIfExists(tempDir)
-  }
-
 
 }

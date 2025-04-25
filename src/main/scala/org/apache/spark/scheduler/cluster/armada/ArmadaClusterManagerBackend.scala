@@ -19,8 +19,9 @@ package org.apache.spark.scheduler.cluster.armada
 import io.armadaproject.armada.ArmadaClient
 import k8s.io.api.core.v1.generated._
 import k8s.io.apimachinery.pkg.api.resource.generated.Quantity
-import org.apache.spark.SparkContext
-import org.apache.spark.deploy.armada.Config.{ARMADA_EXECUTOR_TRACKER_POLLING_INTERVAL, ARMADA_EXECUTOR_TRACKER_TIMEOUT}
+import org.apache.spark.{SparkContext, SparkException}
+import org.apache.spark.deploy.armada.Config.{ARMADA_EXECUTOR_TRACKER_POLLING_INTERVAL, ARMADA_EXECUTOR_TRACKER_TIMEOUT, EXECUTOR_CONTAINER_IMAGE}
+import org.apache.spark.deploy.armada.Constants.DEFAULT_DRIVER_PORT
 import org.apache.spark.rpc.{RpcAddress, RpcCallContext}
 import org.apache.spark.scheduler.cluster.{CoarseGrainedSchedulerBackend, SchedulerBackendUtils}
 import org.apache.spark.scheduler.{ExecutorDecommission, TaskSchedulerImpl}
@@ -39,8 +40,7 @@ private[spark] class ArmadaClusterSchedulerBackend(
     masterURL: String)
   extends CoarseGrainedSchedulerBackend(scheduler, sc.env.rpcEnv) {
 
-  // FIXME
-  private val appId = "fake_app_id_FIXME"
+  private val appId = "executor-app-id"
 
   private val initialExecutors = SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
   private val executorTracker = new ExecutorTracker(new SystemClock(), initialExecutors)
@@ -75,17 +75,21 @@ private[spark] class ArmadaClusterSchedulerBackend(
     val host = if (urlArray(1).startsWith("/")) urlArray(1).substring(2) else urlArray(1)
     val port = urlArray(2).toInt
 
+    val executorContainerImage = conf.get(EXECUTOR_CONTAINER_IMAGE)
+      .getOrElse(throw new SparkException("Must specify the executor container image"))
     val driverAddr = sys.env("SPARK_DRIVER_BIND_ADDRESS")
 
 
-    val driverURL = s"spark://CoarseGrainedScheduler@$driverAddr:7078"
+    val driverURL = s"spark://CoarseGrainedScheduler@$driverAddr:$DEFAULT_DRIVER_PORT"
     val source = EnvVarSource().withFieldRef(ObjectFieldSelector()
       .withApiVersion("v1").withFieldPath("status.podIP"))
+    val podName = EnvVarSource().withFieldRef(ObjectFieldSelector()
+      .withApiVersion("v1").withFieldPath("metadata.name"))
     val envVars = Seq(
       EnvVar().withName("SPARK_EXECUTOR_ID").withValue(executorId.toString),
       EnvVar().withName("SPARK_RESOURCE_PROFILE_ID").withValue("0"),
-      EnvVar().withName("SPARK_EXECUTOR_POD_NAME").withValue("test-pod-name"),
-      EnvVar().withName("SPARK_APPLICATION_ID").withValue("test_spark_app_id"),
+      EnvVar().withName("SPARK_EXECUTOR_POD_NAME").withValueFrom(podName),
+      EnvVar().withName("SPARK_APPLICATION_ID").withValue(applicationId()),
       EnvVar().withName("SPARK_EXECUTOR_CORES").withValue("1"),
       EnvVar().withName("SPARK_EXECUTOR_MEMORY").withValue("512m"),
       EnvVar().withName("SPARK_DRIVER_URL").withValue(driverURL),
@@ -94,7 +98,7 @@ private[spark] class ArmadaClusterSchedulerBackend(
     val executorContainer = Container()
       .withName("spark-executor")
       .withImagePullPolicy("IfNotPresent")
-      .withImage(conf.get("spark.armada.container.image"))
+      .withImage(executorContainerImage)
       .withEnv(envVars ++ javaOptEnvVars)
       .withCommand(Seq("/opt/entrypoint.sh"))
       .withArgs(

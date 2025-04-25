@@ -34,11 +34,10 @@ import io.fabric8.kubernetes.client.Watcher.Action
 import _root_.io.armadaproject.armada.ArmadaClient
 import k8s.io.api.core.v1.generated._
 import k8s.io.apimachinery.pkg.api.resource.generated.Quantity
-import org.apache.spark.SparkException
-import org.apache.spark.SparkConf
+import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.deploy.SparkApplication
 import org.apache.spark.deploy.armada.Config._
-import org.apache.spark.internal.config._
+import org.apache.spark.deploy.armada.Constants.DEFAULT_DRIVER_PORT
 
 /* import org.apache.spark.deploy.k8s._
 import org.apache.spark.deploy.k8s.Config._
@@ -342,7 +341,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           "--master",
           s"${conf.get(ARMADA_REMOTE_MASTER).getOrElse(conf.get("spark.master"))}",
           "--conf",
-          "spark.driver.port=7078",
+          s"spark.driver.port=$DEFAULT_DRIVER_PORT",
           "--conf",
           s"${CONTAINER_IMAGE.key}=$driverContainerImage",
           "--conf",
@@ -353,13 +352,13 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       .withResources( // FIXME: What are reasonable requests/limits for spark drivers?
         ResourceRequirements(
           limits = Map(
-            "memory" -> Quantity(Option(conf.get(ARMADA_DRIVER_LIMIT_MEMORY).toString)),
-            "ephemeral-storage" -> Quantity(Option(conf.get(ARMADA_DRIVER_LIMIT_EPHEMERAL_STORAGE).toString)),
+            "memory" -> Quantity(Option(conf.get(ARMADA_DRIVER_LIMIT_MEMORY))),
+            "ephemeral-storage" -> Quantity(Option(conf.get(ARMADA_DRIVER_LIMIT_EPHEMERAL_STORAGE))),
             "cpu" -> Quantity(Option(conf.get(ARMADA_DRIVER_LIMIT_CORES).toString))
           ),
           requests = Map(
-            "memory" -> Quantity(Option(conf.get(ARMADA_DRIVER_REQUEST_MEMORY).toString)),
-            "ephemeral-storage" -> Quantity(Option(conf.get(ARMADA_DRIVER_REQUEST_EPHEMERAL_STORAGE).toString)),
+            "memory" -> Quantity(Option(conf.get(ARMADA_DRIVER_REQUEST_MEMORY))),
+            "ephemeral-storage" -> Quantity(Option(conf.get(ARMADA_DRIVER_REQUEST_EPHEMERAL_STORAGE))),
             "cpu" -> Quantity(Option(conf.get(ARMADA_DRIVER_REQUEST_CORES).toString))
           )
         )

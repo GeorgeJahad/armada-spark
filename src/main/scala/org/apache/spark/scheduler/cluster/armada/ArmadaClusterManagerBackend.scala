@@ -21,7 +21,7 @@ import k8s.io.api.core.v1.generated._
 import k8s.io.apimachinery.pkg.api.resource.generated.Quantity
 import org.apache.spark.{SparkContext, SparkException}
 import org.apache.spark.deploy.armada.Config.{ARMADA_EXECUTOR_TRACKER_POLLING_INTERVAL, ARMADA_EXECUTOR_TRACKER_TIMEOUT, EXECUTOR_CONTAINER_IMAGE}
-import org.apache.spark.deploy.armada.Constants.{DEFAULT_DRIVER_PORT, ENTRYPOINT, EXECUTOR_ENTRYPOINT_ARG}
+import org.apache.spark.deploy.armada.Constants._
 import org.apache.spark.rpc.{RpcAddress, RpcCallContext}
 import org.apache.spark.scheduler.cluster.{CoarseGrainedSchedulerBackend, SchedulerBackendUtils}
 import org.apache.spark.scheduler.{ExecutorDecommission, TaskSchedulerImpl}
@@ -85,13 +85,17 @@ private[spark] class ArmadaClusterSchedulerBackend(
       .withApiVersion("v1").withFieldPath("status.podIP"))
     val podName = EnvVarSource().withFieldRef(ObjectFieldSelector()
       .withApiVersion("v1").withFieldPath("metadata.name"))
+
+    val sparkExecutorMemory = conf.getOption("spark.executor.memory").getOrElse(DEFAULT_SPARK_EXECUTOR_MEMORY)
+    val sparkExecutorCores = conf.getOption("spark.executor.cores").getOrElse(DEFAULT_SPARK_EXECUTOR_CORES)
+
     val envVars = Seq(
       EnvVar().withName("SPARK_EXECUTOR_ID").withValue(executorId.toString),
       EnvVar().withName("SPARK_RESOURCE_PROFILE_ID").withValue("0"),
       EnvVar().withName("SPARK_EXECUTOR_POD_NAME").withValueFrom(podName),
       EnvVar().withName("SPARK_APPLICATION_ID").withValue(applicationId()),
-      EnvVar().withName("SPARK_EXECUTOR_CORES").withValue("1"),
-      EnvVar().withName("SPARK_EXECUTOR_MEMORY").withValue("512m"),
+      EnvVar().withName("SPARK_EXECUTOR_CORES").withValue(sparkExecutorCores),
+      EnvVar().withName("SPARK_EXECUTOR_MEMORY").withValue(sparkExecutorMemory),
       EnvVar().withName("SPARK_DRIVER_URL").withValue(driverURL),
       EnvVar().withName("SPARK_EXECUTOR_POD_IP").withValueFrom(source)
     )

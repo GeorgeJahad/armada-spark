@@ -22,4 +22,6 @@ private[spark] object Constants {
   val ENTRYPOINT = "/opt/entrypoint.sh"
   val EXECUTOR_ENTRYPOINT_ARG = "executor"
   val DRIVER_ENTRYPOINT_ARG = "driver"
+  val DEFAULT_SPARK_EXECUTOR_MEMORY = "1g"
+  val DEFAULT_SPARK_EXECUTOR_CORES = "1"
 }

@@ -21,7 +21,7 @@ import k8s.io.api.core.v1.generated._
 import k8s.io.apimachinery.pkg.api.resource.generated.Quantity
 import org.apache.spark.{SparkContext, SparkException}
 import org.apache.spark.deploy.armada.Config.{ARMADA_EXECUTOR_TRACKER_POLLING_INTERVAL, ARMADA_EXECUTOR_TRACKER_TIMEOUT, EXECUTOR_CONTAINER_IMAGE}
-import org.apache.spark.deploy.armada.Constants.DEFAULT_DRIVER_PORT
+import org.apache.spark.deploy.armada.Constants.{DEFAULT_DRIVER_PORT, ENTRYPOINT, EXECUTOR_ENTRYPOINT_ARG}
 import org.apache.spark.rpc.{RpcAddress, RpcCallContext}
 import org.apache.spark.scheduler.cluster.{CoarseGrainedSchedulerBackend, SchedulerBackendUtils}
 import org.apache.spark.scheduler.{ExecutorDecommission, TaskSchedulerImpl}
@@ -100,10 +100,10 @@ private[spark] class ArmadaClusterSchedulerBackend(
       .withImagePullPolicy("IfNotPresent")
       .withImage(executorContainerImage)
       .withEnv(envVars ++ javaOptEnvVars)
-      .withCommand(Seq("/opt/entrypoint.sh"))
+      .withCommand(Seq(ENTRYPOINT))
       .withArgs(
         Seq(
-          "executor"
+          EXECUTOR_ENTRYPOINT_ARG
         )
       )
       .withResources(

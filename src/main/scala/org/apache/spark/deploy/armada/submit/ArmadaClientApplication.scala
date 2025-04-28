@@ -37,7 +37,7 @@ import k8s.io.apimachinery.pkg.api.resource.generated.Quantity
 import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.deploy.SparkApplication
 import org.apache.spark.deploy.armada.Config._
-import org.apache.spark.deploy.armada.Constants.DEFAULT_DRIVER_PORT
+import org.apache.spark.deploy.armada.Constants.{DEFAULT_DRIVER_PORT, ENTRYPOINT, DRIVER_ENTRYPOINT_ARG}
 
 /* import org.apache.spark.deploy.k8s._
 import org.apache.spark.deploy.k8s.Config._
@@ -330,11 +330,11 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       .withImagePullPolicy("IfNotPresent")
       .withImage(driverContainerImage)
       .withEnv(envVars)
-      .withCommand(Seq("/opt/entrypoint.sh"))
+      .withCommand(Seq(ENTRYPOINT))
       .withVolumeMounts(volumeMounts)
       .withArgs(
         Seq(
-          "driver",
+          DRIVER_ENTRYPOINT_ARG,
           "--verbose",
           "--class",
           clientArguments.mainClass,
@@ -349,7 +349,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
 
         ) ++ primaryResource ++ clientArguments.driverArgs
       )
-      .withResources( // FIXME: What are reasonable requests/limits for spark drivers?
+      .withResources(
         ResourceRequirements(
           limits = Map(
             "memory" -> Quantity(Option(conf.get(ARMADA_DRIVER_LIMIT_MEMORY))),

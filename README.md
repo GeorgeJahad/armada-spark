@@ -29,12 +29,14 @@ This script provides options to confgure your build:
 ```bash
  Usage:
    -h  help
+   -p  include python in the build/run
    -i  <image-name>
    -m  <armada-master-url>
    -q  <armada-queue>
    -l  <armada-lookout-url>
 
 You also can specify those parameters in scripts/config.sh, like so:
+   INCLUDE_PYTHON=true
    IMAGE_NAME=spark:armada
    ARMADA_MASTER=armada://localhost:30002
    ARMADA_QUEUE=test

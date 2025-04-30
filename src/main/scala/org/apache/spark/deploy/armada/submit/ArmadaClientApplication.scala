@@ -341,6 +341,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     val source = EnvVarSource().withFieldRef(ObjectFieldSelector()
       .withApiVersion("v1").withFieldPath("status.podIP"))
     val envVars = Seq(
+      EnvVar().withName("SPARK_JAVA_OPT_0").withValue("--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"),
       EnvVar().withName("SPARK_EXECUTOR_ID").withValue(executorID.toString),
       EnvVar().withName("SPARK_RESOURCE_PROFILE_ID").withValue("0"),
       EnvVar().withName("SPARK_EXECUTOR_POD_NAME").withValue("test-pod-name"),

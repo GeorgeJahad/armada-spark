@@ -43,7 +43,7 @@ private[spark] class ArmadaClusterSchedulerBackend(
   extends CoarseGrainedSchedulerBackend(scheduler, sc.env.rpcEnv) {
 
   // FIXME
-  private val appId = "fake_app_id_FIXME"
+  private val appId = "armada_app"
 
   private val initialExecutors = SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
   private val executorTracker = new ExecutorTracker(new SystemClock(), initialExecutors)

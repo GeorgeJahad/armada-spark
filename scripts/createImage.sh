@@ -7,14 +7,14 @@ root="$(cd "$(dirname "$0")/.."; pwd)"
 scripts="$(cd "$(dirname "$0")"; pwd)"
 source "$scripts/init.sh"
 
-if [ "${INCLUDE_PYTHON}" == "false" ]; then
-    echo Building image without Python.
-else
-    echo Building Python image.
-fi
-
 image_prefix=apache/spark
 image_tag="$SPARK_VERSION-scala$SCALA_BIN_VERSION-java${JAVA_VERSION:-17}-ubuntu"
+
+if [ "${INCLUDE_PYTHON}" == "false" ]; then
+    echo Building image without Python: $image_tag
+else
+    echo Building Python image: $image_tag
+fi
 
 # There are no Docker images for Spark 3 and Scala 2.13, as well as for Spark 3.3.4 and any Scala
 if [[ "$SPARK_VERSION" == "3."* ]] && ( [[ "$SCALA_BIN_VERSION" == "2.13" ]] || [[ "$SPARK_VERSION" == "3.3.4" ]] ); then

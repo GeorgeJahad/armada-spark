@@ -23,7 +23,6 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 import org.apache.spark.deploy.armada.Constants.DEFAULT_DRIVER_PORT
 
-import java.nio.file.{Files, Path, StandardOpenOption}
 
 class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   val sparkConf = new SparkConf(false)
@@ -37,9 +36,19 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
     sparkConf.set("spark.master", sparkMaster)
   }
   test("Test get driver container") {
-    val expectedString =
-    s"""|name: "spark-driver"
-        |image: "$imageName"
+    val valueMap = Map("imageName" -> "imageName")
+    val expectedString = getDriverData(valueMap)
+
+    val aca = new ArmadaClientApplication()
+    val container = aca.getDriverContainer(driverServiceName,
+      ClientArguments.fromCommandLineArgs(Array("--main-class", className)), sparkConf, Seq(new VolumeMount))
+    val pstring = container.toProtoString
+    assert(pstring == expectedString)
+  }
+
+  private def getDriverData(valueMap: Map[String, String]) = {
+        s"""|name: "spark-driver"
+        |image: "${valueMap("imageName")}"
         |command: "/opt/entrypoint.sh"
         |args: "driver"
         |args: "--verbose"
@@ -126,13 +135,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |imagePullPolicy: "IfNotPresent"
         |""".stripMargin
 
-    val aca = new ArmadaClientApplication()
-    val container = aca.getDriverContainer(driverServiceName,
-      ClientArguments.fromCommandLineArgs(Array("--main-class", className)), sparkConf, Seq(new VolumeMount))
-    val pstring = container.toProtoString
-    assert(pstring == expectedString)
   }
-
   test("Test get executor container") {
     val executorID = 0
     val expectedString = {

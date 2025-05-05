@@ -21,6 +21,7 @@ import k8s.io.api.core.v1.generated.VolumeMount
 import org.apache.spark.SparkConf
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
+import org.apache.spark.deploy.armada.Constants.DEFAULT_DRIVER_PORT
 
 import java.nio.file.{Files, Path, StandardOpenOption}
 
@@ -47,19 +48,19 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |args: "--master"
         |args: "$sparkMaster"
         |args: "--conf"
-        |args: "spark.driver.port=7078"
+        |args: "spark.driver.port=$DEFAULT_DRIVER_PORT"
         |args: "--conf"
         |args: "spark.armada.container.image=$imageName"
         |args: "--conf"
         |args: "spark.driver.host=$bindAddress"
         |args: "--conf"
-        |args: "spark.master=localhost"
+        |args: "spark.master=$sparkMaster"
         |args: "--conf"
-        |args: "spark.armada.container.image=imageName"
+        |args: "spark.armada.container.image=$imageName"
         |ports {
         |  name: "as-driver-port"
         |  hostPort: 0
-        |  containerPort: 7078
+        |  containerPort: $DEFAULT_DRIVER_PORT
         |}
         |env {
         |  name: "SPARK_DRIVER_BIND_ADDRESS"
@@ -80,7 +81,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |}
         |env {
         |  name: "ARMADA_SPARK_DRIVER_SERVICE_NAME"
-        |  value: "driverService"
+        |  value: "$driverServiceName"
         |}
         |resources {
         |  limits {

@@ -112,7 +112,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |""".stripMargin
 
     val aca = new ArmadaClientApplication()
-    val container = aca.getDriverContainer(ClientArguments.fromCommandLineArgs(Array("--main-class", className)), sparkConf, Seq(new VolumeMount))
+    val container = aca.getDriverContainer("driverService", ClientArguments.fromCommandLineArgs(Array("--main-class", className)), sparkConf, Seq(new VolumeMount))
     val pstring = container.toProtoString
     assert(container.toProtoString == expectedString)
   }

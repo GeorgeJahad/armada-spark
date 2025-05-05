@@ -23,6 +23,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.deploy.armada.Config.{ARMADA_CLUSTER_SELECTORS,
   ARMADA_EXECUTOR_TRACKER_POLLING_INTERVAL, ARMADA_EXECUTOR_TRACKER_TIMEOUT,
   commaSeparatedLabelsToMap, GANG_SCHEDULING_NODE_UNIFORMITY_LABEL}
+import org.apache.spark.deploy.armada.Constants._
 import org.apache.spark.deploy.armada.submit.GangSchedulingAnnotations._
 import org.apache.spark.rpc.{RpcAddress, RpcCallContext}
 import org.apache.spark.scheduler.cluster.{CoarseGrainedSchedulerBackend, SchedulerBackendUtils}
@@ -42,15 +43,12 @@ private[spark] class ArmadaClusterSchedulerBackend(
     masterURL: String)
   extends CoarseGrainedSchedulerBackend(scheduler, sc.env.rpcEnv) {
 
-  // FIXME
-  private val appId = "fake_app_id_FIXME"
-
   private val initialExecutors = SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
   private val executorTracker = new ExecutorTracker(new SystemClock(), initialExecutors)
   private val gangAnnotations = GetGangAnnotations("", initialExecutors, conf.get(GANG_SCHEDULING_NODE_UNIFORMITY_LABEL))
 
   override def applicationId(): String = {
-    conf.getOption("spark.app.id").getOrElse(appId)
+    conf.getOption("spark.app.id").getOrElse(DEFAULT_ARMADA_APP_ID)
   }
 
   override def start(): Unit = {

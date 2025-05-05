@@ -24,4 +24,5 @@ private[spark] object Constants {
   val DRIVER_ENTRYPOINT_ARG = "driver"
   val DEFAULT_SPARK_EXECUTOR_MEMORY = "1g"
   val DEFAULT_SPARK_EXECUTOR_CORES = "1"
+  val DEFAULT_ARMADA_APP_ID = "armada-spark-app-id"
 }

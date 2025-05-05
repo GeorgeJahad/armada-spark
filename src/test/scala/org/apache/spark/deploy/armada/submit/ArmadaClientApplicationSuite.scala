@@ -51,6 +51,15 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |args: "spark.armada.container.image=$imageName"
         |args: "--conf"
         |args: "spark.driver.host=$bindAddress"
+        |args: "--conf"
+        |args: "spark.master=localhost"
+        |args: "--conf"
+        |args: "spark.armada.container.image=imageName"
+        |ports {
+        |  name: "as-driver-port"
+        |  hostPort: 0
+        |  containerPort: 7078
+        |}
         |env {
         |  name: "SPARK_DRIVER_BIND_ADDRESS"
         |  valueFrom {
@@ -67,6 +76,10 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |env {
         |  name: "EXTERNAL_CLUSTER_SUPPORT_ENABLED"
         |  value: "true"
+        |}
+        |env {
+        |  name: "ARMADA_SPARK_DRIVER_SERVICE_NAME"
+        |  value: "driverService"
         |}
         |resources {
         |  limits {

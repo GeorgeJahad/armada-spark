@@ -335,7 +335,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     }
   }
 
-  private def getExecutorContainer(executorID: Int, driverServiceName: String, conf: SparkConf): Container = {
+  private[spark] def getExecutorContainer(executorID: Int, driverServiceName: String, conf: SparkConf): Container = {
     val executorContainerImage = conf.get(EXECUTOR_CONTAINER_IMAGE)
       .getOrElse(throw new SparkException("Must specify the executor container image"))
     val driverURL = s"spark://CoarseGrainedScheduler@$driverServiceName:$DEFAULT_DRIVER_PORT"

@@ -29,6 +29,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   val imageName = "imageName"
   val sparkMaster = "localhost"
   val className = "testClass"
+  val driverServiceName = "driverService"
   val bindAddress = "$(SPARK_DRIVER_BIND_ADDRESS)"
   before {
     sparkConf.set("spark.armada.container.image", imageName)
@@ -125,9 +126,114 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |""".stripMargin
 
     val aca = new ArmadaClientApplication()
-    val container = aca.getDriverContainer("driverService", ClientArguments.fromCommandLineArgs(Array("--main-class", className)), sparkConf, Seq(new VolumeMount))
+    val container = aca.getDriverContainer(driverServiceName,
+      ClientArguments.fromCommandLineArgs(Array("--main-class", className)), sparkConf, Seq(new VolumeMount))
     val pstring = container.toProtoString
-    assert(container.toProtoString == expectedString)
+    assert(pstring == expectedString)
+  }
+
+  test("Test get executor container") {
+    val executorID = 0
+    val expectedString = {
+    s"""|name: "spark-executor-$executorID"
+        |image: "$imageName"
+        |command: "/opt/entrypoint.sh"
+        |args: "executor"
+        |env {
+        |  name: "SPARK_EXECUTOR_ID"
+        |  value: "$executorID"
+        |}
+        |env {
+        |  name: "SPARK_RESOURCE_PROFILE_ID"
+        |  value: "0"
+        |}
+        |env {
+        |  name: "SPARK_EXECUTOR_POD_NAME"
+        |  valueFrom {
+        |    fieldRef {
+        |      apiVersion: "v1"
+        |      fieldPath: "metadata.name"
+        |    }
+        |  }
+        |}
+        |env {
+        |  name: "SPARK_APPLICATION_ID"
+        |  value: "armada-spark-app-id"
+        |}
+        |env {
+        |  name: "SPARK_EXECUTOR_CORES"
+        |  value: "1"
+        |}
+        |env {
+        |  name: "SPARK_EXECUTOR_MEMORY"
+        |  value: "1g"
+        |}
+        |env {
+        |  name: "SPARK_DRIVER_URL"
+        |  value: "spark://CoarseGrainedScheduler@driverService:7078"
+        |}
+        |env {
+        |  name: "SPARK_EXECUTOR_POD_IP"
+        |  valueFrom {
+        |    fieldRef {
+        |      apiVersion: "v1"
+        |      fieldPath: "status.podIP"
+        |    }
+        |  }
+        |}
+        |env {
+        |  name: "ARMADA_SPARK_GANG_NODE_UNIFORMITY_LABEL"
+        |  value: "armada-spark"
+        |}
+        |env {
+        |  name: "SPARK_JAVA_OPT_0"
+        |  value: "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
+        |}
+        |resources {
+        |  limits {
+        |    key: "memory"
+        |    value {
+        |      string: "1Gi"
+        |    }
+        |  }
+        |  limits {
+        |    key: "ephemeral-storage"
+        |    value {
+        |      string: "512Mi"
+        |    }
+        |  }
+        |  limits {
+        |    key: "cpu"
+        |    value {
+        |      string: "1"
+        |    }
+        |  }
+        |  requests {
+        |    key: "memory"
+        |    value {
+        |      string: "1Gi"
+        |    }
+        |  }
+        |  requests {
+        |    key: "ephemeral-storage"
+        |    value {
+        |      string: "512Mi"
+        |    }
+        |  }
+        |  requests {
+        |    key: "cpu"
+        |    value {
+        |      string: "1"
+        |    }
+        |  }
+        |}
+        |imagePullPolicy: "IfNotPresent"
+        |""".stripMargin
+    }
+    val aca = new ArmadaClientApplication()
+    val container = aca.getExecutorContainer(executorID, driverServiceName, sparkConf)
+    val pstring = container.toProtoString
+    assert(pstring == expectedString)
   }
 
 }

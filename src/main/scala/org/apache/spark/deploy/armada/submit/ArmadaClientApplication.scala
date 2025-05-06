@@ -432,8 +432,6 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           "--conf",
           s"spark.driver.port=$DRIVER_PORT",
           "--conf",
-          s"${CONTAINER_IMAGE.key}=$driverContainerImage",
-          "--conf",
           "spark.driver.host=$(SPARK_DRIVER_BIND_ADDRESS)"
         ) ++ confSeq ++ primaryResource ++ clientArguments.driverArgs
       )

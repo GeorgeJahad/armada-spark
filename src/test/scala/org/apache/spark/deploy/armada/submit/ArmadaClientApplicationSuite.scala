@@ -21,7 +21,7 @@ import k8s.io.api.core.v1.generated.VolumeMount
 import org.apache.spark.SparkConf
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
-import org.apache.spark.deploy.armada.Constants.DEFAULT_DRIVER_PORT
+import org.apache.spark.deploy.armada.Constants.DRIVER_PORT
 
 
 class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
@@ -35,18 +35,46 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
     sparkConf.set("spark.armada.container.image", imageName)
     sparkConf.set("spark.master", sparkMaster)
   }
-  test("Test get driver container") {
-    val valueMap = Map("imageName" -> "imageName")
+  test("Test get driver container default values") {
+    val valueMap = Map(
+      "limitMem" -> "1Gi",
+      "limitStorage" -> "512Mi",
+      "limitCPU" -> "1",
+      "requestMem" -> "1Gi",
+      "requestStorage" -> "512Mi",
+      "requestCPU" -> "1")
 
     val aca = new ArmadaClientApplication()
     val container = aca.getDriverContainer(driverServiceName,
       ClientArguments.fromCommandLineArgs(Array("--main-class", className)), sparkConf, Seq(new VolumeMount))
+
     val driverArgsString = container.args.mkString("\n")
     assert(driverArgsString == getDriverArgs(valueMap))
+
     val driverPortString = container.ports.head.toProtoString
     assert(driverPortString == getDriverPort(valueMap))
+
     val driverEnvString = container.env.map(_.toProtoString).mkString
     assert(driverEnvString == getDriverEnv(valueMap))
+
+    val driverResourcesString = container.resources.get.toProtoString
+    assert(driverResourcesString == getResources(valueMap))
+  }
+
+  test("Test get driver container non-default values") {
+    val valueMap = Map(
+      "limitMem" -> "1Gi",
+      "limitStorage" -> "512Mi",
+      "limitCPU" -> "1",
+      "requestMem" -> "1Gi",
+      "requestStorage" -> "512Mi",
+      "requestCPU" -> "1")
+
+
+    val aca = new ArmadaClientApplication()
+    val container = aca.getDriverContainer(driverServiceName,
+      ClientArguments.fromCommandLineArgs(Array("--main-class", className)), sparkConf, Seq(new VolumeMount))
+
     val driverResourcesString = container.resources.get.toProtoString
     assert(driverResourcesString == getResources(valueMap))
   }
@@ -59,7 +87,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |--master
         |$sparkMaster
         |--conf
-        |spark.driver.port=$DEFAULT_DRIVER_PORT
+        |spark.driver.port=$DRIVER_PORT
         |--conf
         |spark.armada.container.image=$imageName
         |--conf
@@ -71,9 +99,9 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   }
 
   private def getDriverPort(valueMap: Map[String, String]) = {
-    s"""|name: "as-driver-port"
+    s"""|name: "armada-spark-driver-port"
         |hostPort: 0
-        |containerPort: $DEFAULT_DRIVER_PORT
+        |containerPort: $DRIVER_PORT
         |""".stripMargin
   }
 
@@ -98,130 +126,40 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
     s"""|limits {
         |  key: "memory"
         |  value {
-        |    string: "1Gi"
+        |    string: "${valueMap("limitMem")}"
         |  }
         |}
         |limits {
         |  key: "ephemeral-storage"
         |  value {
-        |    string: "512Mi"
+        |    string: "${valueMap("limitStorage")}"
         |  }
         |}
         |limits {
         |  key: "cpu"
         |  value {
-        |    string: "1"
+        |    string: "${valueMap("limitCPU")}"
         |  }
         |}
         |requests {
         |  key: "memory"
         |  value {
-        |    string: "1Gi"
+        |    string: "${valueMap("requestMem")}"
         |  }
         |}
         |requests {
         |  key: "ephemeral-storage"
         |  value {
-        |    string: "512Mi"
+        |    string: "${valueMap("requestStorage")}"
         |  }
         |}
         |requests {
         |  key: "cpu"
         |  value {
-        |    string: "1"
+        |    string: "${valueMap("requestCPU")}"
         |  }
         |}
         |""".stripMargin
-  }
-  private def getDriverData(valueMap: Map[String, String]) = {
-        s"""|name: "spark-driver"
-        |image: "${valueMap("imageName")}"
-        |command: "/opt/entrypoint.sh"
-        |args: "driver"
-        |args: "--verbose"
-        |args: "--class"
-        |args: "$className"
-        |args: "--master"
-        |args: "$sparkMaster"
-        |args: "--conf"
-        |args: "spark.driver.port=$DEFAULT_DRIVER_PORT"
-        |args: "--conf"
-        |args: "spark.armada.container.image=$imageName"
-        |args: "--conf"
-        |args: "spark.driver.host=$bindAddress"
-        |args: "--conf"
-        |args: "spark.master=$sparkMaster"
-        |args: "--conf"
-        |args: "spark.armada.container.image=$imageName"
-        |ports {
-        |  name: "as-driver-port"
-        |  hostPort: 0
-        |  containerPort: $DEFAULT_DRIVER_PORT
-        |}
-        |env {
-        |  name: "SPARK_DRIVER_BIND_ADDRESS"
-        |  valueFrom {
-        |    fieldRef {
-        |      apiVersion: "v1"
-        |      fieldPath: "status.podIP"
-        |    }
-        |  }
-        |}
-        |env {
-        |  name: "SPARK_CONF_DIR"
-        |  value: "/opt/spark/conf"
-        |}
-        |env {
-        |  name: "EXTERNAL_CLUSTER_SUPPORT_ENABLED"
-        |  value: "true"
-        |}
-        |env {
-        |  name: "ARMADA_SPARK_DRIVER_SERVICE_NAME"
-        |  value: "$driverServiceName"
-        |}
-        |resources {
-        |  limits {
-        |    key: "memory"
-        |    value {
-        |      string: "1Gi"
-        |    }
-        |  }
-        |  limits {
-        |    key: "ephemeral-storage"
-        |    value {
-        |      string: "512Mi"
-        |    }
-        |  }
-        |  limits {
-        |    key: "cpu"
-        |    value {
-        |      string: "1"
-        |    }
-        |  }
-        |  requests {
-        |    key: "memory"
-        |    value {
-        |      string: "1Gi"
-        |    }
-        |  }
-        |  requests {
-        |    key: "ephemeral-storage"
-        |    value {
-        |      string: "512Mi"
-        |    }
-        |  }
-        |  requests {
-        |    key: "cpu"
-        |    value {
-        |      string: "1"
-        |    }
-        |  }
-        |}
-        |volumeMounts {
-        |}
-        |imagePullPolicy: "IfNotPresent"
-        |""".stripMargin
-
   }
 
   test("Test get executor container") {

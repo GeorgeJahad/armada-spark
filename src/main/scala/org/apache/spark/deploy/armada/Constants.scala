@@ -18,7 +18,7 @@ package org.apache.spark.deploy.armada
 
 private[spark] object Constants {
 
-  val DEFAULT_DRIVER_PORT = 7078
+  val DRIVER_PORT = 7078
   val ENTRYPOINT = "/opt/entrypoint.sh"
   val EXECUTOR_ENTRYPOINT_ARG = "executor"
   val DRIVER_ENTRYPOINT_ARG = "driver"

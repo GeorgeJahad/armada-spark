@@ -338,7 +338,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
   private[spark] def getExecutorContainer(executorID: Int, driverServiceName: String, conf: SparkConf): Container = {
     val executorContainerImage = conf.get(EXECUTOR_CONTAINER_IMAGE)
       .getOrElse(throw new SparkException("Must specify the executor container image"))
-    val driverURL = s"spark://CoarseGrainedScheduler@$driverServiceName:$DEFAULT_DRIVER_PORT"
+    val driverURL = s"spark://CoarseGrainedScheduler@$driverServiceName:$DRIVER_PORT"
     val source = EnvVarSource().withFieldRef(ObjectFieldSelector()
       .withApiVersion("v1").withFieldPath("status.podIP"))
     val podName = EnvVarSource().withFieldRef(ObjectFieldSelector()
@@ -410,14 +410,17 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     val driverContainerImage = conf.get(DRIVER_CONTAINER_IMAGE)
       .getOrElse(throw new SparkException("Must specify the driver container image"))
 
+    val DRIVER_CONTAINER_NAME = "armada-spark-driver"
+    val DRIVER_PORT_NAME = "armada-spark-driver-port"
+    val DRIVER_HOST_PORT = 0
 
-    Container().withName("spark-driver")
+    Container().withName(DRIVER_CONTAINER_NAME)
       .withImagePullPolicy("IfNotPresent")
       .withImage(driverContainerImage)
       .withEnv(envVars)
       .withCommand(Seq(ENTRYPOINT))
       .withVolumeMounts(volumeMounts)
-      .withPorts(Seq(ContainerPort(Option("as-driver-port"), Option(0), Option(DEFAULT_DRIVER_PORT))))
+      .withPorts(Seq(ContainerPort(Option(DRIVER_PORT_NAME), Option(DRIVER_HOST_PORT), Option(DRIVER_PORT))))
       .withArgs(
         Seq(
           DRIVER_ENTRYPOINT_ARG,
@@ -427,7 +430,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           "--master",
           s"${conf.get(ARMADA_REMOTE_MASTER).getOrElse(conf.get("spark.master"))}",
           "--conf",
-          s"spark.driver.port=$DEFAULT_DRIVER_PORT",
+          s"spark.driver.port=$DRIVER_PORT",
           "--conf",
           s"${CONTAINER_IMAGE.key}=$driverContainerImage",
           "--conf",
@@ -496,7 +499,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       .withServices(Seq(
         api.submit.ServiceConfig(
           api.submit.ServiceType.NodePort,
-          Seq(DEFAULT_DRIVER_PORT),
+          Seq(DRIVER_PORT),
           driverServiceName)))
 
     val executorJobsSubmitResponse = armadaClient.submitJobs("test", "executor", executorJobs)

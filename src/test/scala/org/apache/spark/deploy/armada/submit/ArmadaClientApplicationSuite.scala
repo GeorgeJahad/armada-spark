@@ -37,15 +37,109 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   }
   test("Test get driver container") {
     val valueMap = Map("imageName" -> "imageName")
-    val expectedString = getDriverData(valueMap)
 
     val aca = new ArmadaClientApplication()
     val container = aca.getDriverContainer(driverServiceName,
       ClientArguments.fromCommandLineArgs(Array("--main-class", className)), sparkConf, Seq(new VolumeMount))
-    val pstring = container.toProtoString
-    assert(pstring == expectedString)
+    val driverArgsString = container.args.mkString("\n")
+    assert(driverArgsString == getDriverArgs(valueMap))
+    val driverPortString = container.ports.head.toProtoString
+    assert(driverPortString == getDriverPort(valueMap))
   }
 
+  private def getDriverArgs(valueMap: Map[String, String]) = {
+    s"""|driver
+        |--verbose
+        |--class
+        |$className
+        |--master
+        |$sparkMaster
+        |--conf
+        |spark.driver.port=$DEFAULT_DRIVER_PORT
+        |--conf
+        |spark.armada.container.image=$imageName
+        |--conf
+        |spark.driver.host=$bindAddress
+        |--conf
+        |spark.master=$sparkMaster
+        |--conf
+        |spark.armada.container.image=$imageName""".stripMargin
+  }
+
+  private def getDriverPort(valueMap: Map[String, String]) = {
+    s"""|name: "as-driver-port"
+        |hostPort: 0
+        |containerPort: $DEFAULT_DRIVER_PORT
+        |""".stripMargin
+  }
+
+  private def getDriverEnv(valueMap: Map[String, String]) = {
+s"""|  name: "as-driver-port"
+        |env {
+        |  name: "SPARK_DRIVER_BIND_ADDRESS"
+        |  valueFrom {
+        |    fieldRef {
+        |      apiVersion: "v1"
+        |      fieldPath: "status.podIP"
+        |    }
+        |  }
+        |}
+        |env {
+        |  name: "SPARK_CONF_DIR"
+        |  value: "/opt/spark/conf"
+        |}
+        |env {
+        |  name: "EXTERNAL_CLUSTER_SUPPORT_ENABLED"
+        |  value: "true"
+        |}
+        |env {
+        |  name: "ARMADA_SPARK_DRIVER_SERVICE_NAME"
+        |  value: "$driverServiceName"
+        |}
+        |resources {
+        |  limits {
+        |    key: "memory"
+        |    value {
+        |      string: "1Gi"
+        |    }
+        |  }
+        |  limits {
+        |    key: "ephemeral-storage"
+        |    value {
+        |      string: "512Mi"
+        |    }
+        |  }
+        |  limits {
+        |    key: "cpu"
+        |    value {
+        |      string: "1"
+        |    }
+        |  }
+        |  requests {
+        |    key: "memory"
+        |    value {
+        |      string: "1Gi"
+        |    }
+        |  }
+        |  requests {
+        |    key: "ephemeral-storage"
+        |    value {
+        |      string: "512Mi"
+        |    }
+        |  }
+        |  requests {
+        |    key: "cpu"
+        |    value {
+        |      string: "1"
+        |    }
+        |  }
+        |}
+        |volumeMounts {
+        |}
+        |imagePullPolicy: "IfNotPresent"
+        |""".stripMargin
+
+  }
   private def getDriverData(valueMap: Map[String, String]) = {
         s"""|name: "spark-driver"
         |image: "${valueMap("imageName")}"
@@ -136,6 +230,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |""".stripMargin
 
   }
+
   test("Test get executor container") {
     val executorID = 0
     val expectedString = {

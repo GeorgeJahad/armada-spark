@@ -118,7 +118,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   }
 
   private def getDriverPort(valueMap: Map[String, String]) = {
-    s"""|name: "armada-spark-driver-port"
+    s"""|name: "armada-spark"
         |hostPort: 0
         |containerPort: $DRIVER_PORT
         |""".stripMargin

@@ -38,6 +38,7 @@ import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.deploy.SparkApplication
 import org.apache.spark.deploy.armada.Config._
 import org.apache.spark.deploy.armada.Constants._
+import org.apache.spark.deploy.armada.submit.ArmadaClientApplication._
 import org.apache.spark.deploy.armada.submit.GangSchedulingAnnotations._
 import org.apache.spark.scheduler.cluster.SchedulerBackendUtils
 
@@ -234,6 +235,16 @@ private[spark] object Client {
   def submissionId(namespace: String, driverPodName: String): String = s"$namespace:$driverPodName"
 }
 
+private[spark] object ArmadaClientApplication {
+  private val PROFILE_ID = "0"
+  private val DRIVER_CONTAINER_NAME = "armada-spark-driver"
+  private val DRIVER_PORT_NAME = "armada-spark"
+  private val DRIVER_HOST_PORT = 0
+  private val EXECUTOR_ENTRYPOINT_ARG = "executor"
+  private val DRIVER_ENTRYPOINT_ARG = "driver"
+  private val ENTRYPOINT = "/opt/entrypoint.sh"
+}
+
 /**
  * Main class and entry point of application submission in KUBERNETES mode.
  */
@@ -349,7 +360,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
 
     val envVars = Seq(
       EnvVar().withName("SPARK_EXECUTOR_ID").withValue(executorID.toString),
-      EnvVar().withName("SPARK_RESOURCE_PROFILE_ID").withValue("0"),
+      EnvVar().withName("SPARK_RESOURCE_PROFILE_ID").withValue(PROFILE_ID),
       EnvVar().withName("SPARK_EXECUTOR_POD_NAME").withValueFrom(podName),
       EnvVar().withName("SPARK_APPLICATION_ID").withValue(conf.getOption("spark.app.id").getOrElse(DEFAULT_ARMADA_APP_ID)),
       EnvVar().withName("SPARK_EXECUTOR_CORES").withValue(sparkExecutorCores),
@@ -410,9 +421,6 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     val driverContainerImage = conf.get(DRIVER_CONTAINER_IMAGE)
       .getOrElse(throw new SparkException("Must specify the driver container image"))
 
-    val DRIVER_CONTAINER_NAME = "armada-spark-driver"
-    val DRIVER_PORT_NAME = "armada-spark-driver-port"
-    val DRIVER_HOST_PORT = 0
 
     Container().withName(DRIVER_CONTAINER_NAME)
       .withImagePullPolicy("IfNotPresent")

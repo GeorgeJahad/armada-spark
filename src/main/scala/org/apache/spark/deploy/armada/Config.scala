@@ -186,12 +186,19 @@ private[spark] object Config {
       .stringConf
       .createWithDefault("default")
 
-  val ARMADA_JOB_SET_ID: ConfigEntry[String] =
-    ConfigBuilder("spark.armada.job.set.id")
-      .doc("The Armada job set id that will be used for running the driver and executor pods.")
+  val DRIVER_JOB_SET_ID: ConfigEntry[String] =
+    ConfigBuilder("spark.armada.driver.job.set.id")
+      .doc("The Armada job set id that will be used for running the driver pods.")
       .version("1.0.0")
       .stringConf
-      .createWithDefault("Armada-Spark-Job-Set")
+      .createWithDefault("Driver-Job-Set")
+
+  val EXECUTOR_JOB_SET_ID: ConfigEntry[String] =
+    ConfigBuilder("spark.armada.exutor.job.set.id")
+      .doc("The Armada job set id that will be used for running the executor pods.")
+      .version("1.0.0")
+      .stringConf
+      .createWithDefault("Executor-Job-Set")
 
   val ARMADA_NAMESPACE: ConfigEntry[String] =
     ConfigBuilder("spark.armada.namespace")
@@ -243,6 +250,8 @@ private[spark] object Config {
       .stringConf
       .createOptional
 
+  val DEFAULT_ARMADA_APP_ID = "armada-spark-app-id"
+  val DEFAULT_SPARK_EXECUTOR_CORES = "1"
   val DEFAULT_CORES = "100m"
   val ARMADA_DRIVER_LIMIT_CORES: ConfigEntry[String] =
     ConfigBuilder("spark.armada.driver.limit.cores")
@@ -276,6 +285,7 @@ private[spark] object Config {
 
 
   val DEFAULT_MEM = "1Gi"
+  val DEFAULT_SPARK_EXECUTOR_MEMORY = "1g"
   val ARMADA_DRIVER_LIMIT_MEMORY: ConfigEntry[String] =
     ConfigBuilder("spark.armada.driver.limit.memory")
       .doc("Specify the hard memory limit for the driver pod")

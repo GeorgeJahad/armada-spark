@@ -37,7 +37,6 @@ import k8s.io.apimachinery.pkg.api.resource.generated.Quantity
 import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.deploy.SparkApplication
 import org.apache.spark.deploy.armada.Config._
-import org.apache.spark.deploy.armada.Constants._
 import org.apache.spark.deploy.armada.submit.ArmadaClientApplication._
 import org.apache.spark.deploy.armada.submit.GangSchedulingAnnotations._
 import org.apache.spark.scheduler.cluster.SchedulerBackendUtils
@@ -238,8 +237,10 @@ private[spark] object Client {
 private[spark] object ArmadaClientApplication {
   private val PROFILE_ID = "0"
   private val DRIVER_CONTAINER_NAME = "armada-spark-driver"
+  private val EXECUTOR_CONTAINER_NAME = "armada-spark-executor"
   private val DRIVER_PORT_NAME = "armada-spark"
   private val DRIVER_HOST_PORT = 0
+  private val DRIVER_PORT = 7078
   private val EXECUTOR_ENTRYPOINT_ARG = "executor"
   private val DRIVER_ENTRYPOINT_ARG = "driver"
   private val ENTRYPOINT = "/opt/entrypoint.sh"
@@ -371,7 +372,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
         .withValue(conf.get(GANG_SCHEDULING_NODE_UNIFORMITY_LABEL))
     )
     Container()
-      .withName(s"spark-executor-$executorID")
+      .withName(s"${EXECUTOR_CONTAINER_NAME}-$executorID")
       .withImagePullPolicy("IfNotPresent")
       .withImage(executorContainerImage)
       .withEnv(envVars ++ javaOptEnvVars(conf))
@@ -508,13 +509,13 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           Seq(DRIVER_PORT),
           driverServiceName)))
 
-    val executorJobsSubmitResponse = armadaClient.submitJobs("test", "executor", executorJobs)
+    val executorJobsSubmitResponse = armadaClient.submitJobs(conf.get(ARMADA_QUEUE), conf.get(EXECUTOR_JOB_SET_ID), executorJobs)
     for (respItem <- executorJobsSubmitResponse.jobResponseItems) {
       val error = if (respItem.error == "") "None" else respItem.error
       log(s"Executor JobID: ${respItem.jobId}  Error: $error")
     }
 
-    val jobSubmitResponse = armadaClient.submitJobs(conf.get(ARMADA_QUEUE), conf.get(ARMADA_JOB_SET_ID), Seq(driverJob))
+    val jobSubmitResponse = armadaClient.submitJobs(conf.get(ARMADA_QUEUE), conf.get(DRIVER_JOB_SET_ID), Seq(driverJob))
 
     for (respItem <- jobSubmitResponse.jobResponseItems) {
       val error = if (respItem.error == "") "None" else respItem.error

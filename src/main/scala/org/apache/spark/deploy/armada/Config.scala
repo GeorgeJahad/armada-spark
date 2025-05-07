@@ -243,29 +243,37 @@ private[spark] object Config {
       .stringConf
       .createOptional
 
-  val ARMADA_DRIVER_LIMIT_CORES: ConfigEntry[Int] =
+  val DEFAULT_CORES = "100m"
+  val ARMADA_DRIVER_LIMIT_CORES: ConfigEntry[String] =
     ConfigBuilder("spark.armada.driver.limit.cores")
       .doc("Specify the hard cpu limit for the driver pod")
       .version("1.0.0")
-      .fallbackConf(DRIVER_CORES)
+      .stringConf
+      .createWithDefaultString(DEFAULT_CORES)
 
-  val ARMADA_DRIVER_REQUEST_CORES: ConfigEntry[Int] =
+  val ARMADA_DRIVER_REQUEST_CORES: ConfigEntry[String] =
     ConfigBuilder("spark.armada.driver.request.cores")
       .doc("Specify the cpu request for the driver pod")
       .version("1.0.0")
-      .fallbackConf(DRIVER_CORES)
+      .stringConf
+      .createWithDefaultString(DEFAULT_CORES)
 
-  val ARMADA_EXECUTOR_LIMIT_CORES: ConfigEntry[Int] =
+
+  val ARMADA_EXECUTOR_LIMIT_CORES: ConfigEntry[String] =
     ConfigBuilder("spark.armada.executor.limit.cores")
       .doc("Specify the hard cpu limit for each executor pod")
       .version("1.0.0")
-      .fallbackConf(DRIVER_CORES)
+      .stringConf
+      .createWithDefaultString(DEFAULT_CORES)
 
-  val ARMADA_EXECUTOR_REQUEST_CORES: ConfigEntry[Int] =
+
+  val ARMADA_EXECUTOR_REQUEST_CORES: ConfigEntry[String] =
     ConfigBuilder("spark.armada.executor.request.cores")
       .doc("Specify the cpu request for each executor pod")
       .version("1.0.0")
-      .fallbackConf(DRIVER_CORES)
+      .stringConf
+      .createWithDefaultString(DEFAULT_CORES)
+
 
   val DEFAULT_MEM = "1Gi"
   val ARMADA_DRIVER_LIMIT_MEMORY: ConfigEntry[String] =

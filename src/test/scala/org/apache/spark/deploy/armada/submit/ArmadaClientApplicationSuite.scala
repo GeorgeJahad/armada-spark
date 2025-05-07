@@ -42,7 +42,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   test("Test get driver container default values") {
     val mem = DEFAULT_MEM
     val storage = DEFAULT_STORAGE
-    val cpu = DRIVER_CORES.defaultValue.get.toString
+    val cpu = DEFAULT_CORES
     val defaultValues = Map[String, String](
       "sparkMaster" -> sparkMaster,
       "limitMem" -> mem,
@@ -78,10 +78,10 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
     sparkConf.set(ARMADA_REMOTE_MASTER, remoteMaster)
     sparkConf.set(ARMADA_DRIVER_LIMIT_MEMORY, mem)
     sparkConf.set(ARMADA_DRIVER_LIMIT_EPHEMERAL_STORAGE, storage)
-    sparkConf.set(ARMADA_DRIVER_LIMIT_CORES, cpu.toInt)
+    sparkConf.set(ARMADA_DRIVER_LIMIT_CORES, cpu)
     sparkConf.set(ARMADA_DRIVER_REQUEST_MEMORY, mem)
     sparkConf.set(ARMADA_DRIVER_REQUEST_EPHEMERAL_STORAGE, storage)
-    sparkConf.set(ARMADA_DRIVER_REQUEST_CORES, cpu.toInt)
+    sparkConf.set(ARMADA_DRIVER_REQUEST_CORES, cpu)
     val nonDefaultValues = Map[String, String](
       "sparkMaster" -> remoteMaster,
       "limitMem" -> mem,
@@ -184,7 +184,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   test("Test default executor container") {
     val mem = DEFAULT_MEM
     val storage = DEFAULT_STORAGE
-    val cpu = DRIVER_CORES.defaultValue.get.toString
+    val cpu = DEFAULT_CORES
     val defaultValues = Map[String, String](
       "limitMem" -> mem,
       "limitStorage" -> storage,

@@ -21,7 +21,6 @@ import k8s.io.api.core.v1.generated.VolumeMount
 import org.apache.spark.SparkConf
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
-import org.apache.spark.deploy.armada.Constants.DRIVER_PORT
 import org.apache.spark.deploy.armada.Config._
 import org.apache.spark.internal.config.DRIVER_CORES
 
@@ -108,7 +107,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
         |--master
         |${valueMap("sparkMaster")}
         |--conf
-        |spark.driver.port=$DRIVER_PORT
+        |spark.driver.port=7078
         |--conf
         |spark.driver.host=$bindAddress
         |--conf
@@ -120,7 +119,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter {
   private def getDriverPort(valueMap: Map[String, String]) = {
     s"""|name: "armada-spark"
         |hostPort: 0
-        |containerPort: $DRIVER_PORT
+        |containerPort: 7078
         |""".stripMargin
   }
 

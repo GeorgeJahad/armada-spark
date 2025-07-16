@@ -189,9 +189,6 @@ class JobTemplateLoaderSuite extends AnyFunSuite with BeforeAndAfter with Matche
   test("shows configMap isn't parsed") {
     val yamlContent =
       """priority: 1.0
-        |namespace: default
-        |labels:
-        |  app: spark-executor
         |podSpec:
         |  containers:
         |    - name: test
@@ -204,15 +201,6 @@ class JobTemplateLoaderSuite extends AnyFunSuite with BeforeAndAfter with Matche
         |    - name: config-vol
         |      configMap:
         |        name: log-config
-        |  restartPolicy: Never
-        |  terminationGracePeriodSeconds: 30
-        |  nodeSelector:
-        |    kubernetes.io/hostname: worker-node-1
-        |  tolerations:
-        |    - key: "dedicated"
-        |      operator: "Equal"
-        |      value: "spark"
-        |      effect: "NoSchedule"
         |""".stripMargin
 
     val templateFile = createTemplateFile("podspec-template.yaml", yamlContent)
@@ -225,9 +213,6 @@ class JobTemplateLoaderSuite extends AnyFunSuite with BeforeAndAfter with Matche
   test("shows csi isn't parsed") {
     val yamlContent =
       """priority: 1.0
-        |namespace: default
-        |labels:
-        |  app: spark-executor
         |podSpec:
         |  containers:
         |    - name: test
@@ -242,15 +227,6 @@ class JobTemplateLoaderSuite extends AnyFunSuite with BeforeAndAfter with Matche
         |        driver: inline.storage.kubernetes.io
         |        volumeAttributes:
         |          foo: bar
-        |  restartPolicy: Never
-        |  terminationGracePeriodSeconds: 30
-        |  nodeSelector:
-        |    kubernetes.io/hostname: worker-node-1
-        |  tolerations:
-        |    - key: "dedicated"
-        |      operator: "Equal"
-        |      value: "spark"
-        |      effect: "NoSchedule"
         |""".stripMargin
 
     val templateFile = createTemplateFile("podspec-template.yaml", yamlContent)
@@ -263,9 +239,6 @@ class JobTemplateLoaderSuite extends AnyFunSuite with BeforeAndAfter with Matche
   test("shows hostPath isn't parsed") {
     val yamlContent =
       """priority: 1.0
-        |namespace: default
-        |labels:
-        |  app: spark-executor
         |podSpec:
         |  containers:
         |    - name: test
@@ -279,15 +252,6 @@ class JobTemplateLoaderSuite extends AnyFunSuite with BeforeAndAfter with Matche
         |      hostPath:
         |        path: /data
         |        type: DirectoryOrCreate
-        |  restartPolicy: Never
-        |  terminationGracePeriodSeconds: 30
-        |  nodeSelector:
-        |    kubernetes.io/hostname: worker-node-1
-        |  tolerations:
-        |    - key: "dedicated"
-        |      operator: "Equal"
-        |      value: "spark"
-        |      effect: "NoSchedule"
         |""".stripMargin
 
     val templateFile = createTemplateFile("podspec-template.yaml", yamlContent)

@@ -186,6 +186,42 @@ class JobTemplateLoaderSuite extends AnyFunSuite with BeforeAndAfter with Matche
     result.podSpec.get.nodeSelector should contain("kubernetes.io/hostname" -> "worker-node-1")
   }
 
+  test("should parse configMap") {
+    val yamlContent =
+      """priority: 1.0
+        |namespace: default
+        |labels:
+        |  app: spark-executor
+        |podSpec:
+        |  containers:
+        |    - name: test
+        |      image: busybox:1.28
+        |      command: ['sh', '-c', 'echo "The app is running!" && tail -f /dev/null']
+        |      volumeMounts:
+        |        - name: config-vol
+        |          mountPath: /etc/config
+        |  volumes:
+        |    - name: config-vol
+        |      configMap:
+        |        name: log-config
+        |  restartPolicy: Never
+        |  terminationGracePeriodSeconds: 30
+        |  nodeSelector:
+        |    kubernetes.io/hostname: worker-node-1
+        |  tolerations:
+        |    - key: "dedicated"
+        |      operator: "Equal"
+        |      value: "spark"
+        |      effect: "NoSchedule"
+        |""".stripMargin
+
+    val templateFile = createTemplateFile("podspec-template.yaml", yamlContent)
+    val configMapException = intercept[RuntimeException] {
+      JobTemplateLoader.loadJobItemTemplate(templateFile.getAbsolutePath)
+    }
+    configMapException.getMessage should include("""Error: Unrecognized field "configMap""")
+  }
+
   test("should fail with clear errors for invalid inputs") {
     val nonExistentException = intercept[RuntimeException] {
       JobTemplateLoader.loadJobTemplate("/non/existent/path.yaml")

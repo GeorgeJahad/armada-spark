@@ -186,7 +186,7 @@ class JobTemplateLoaderSuite extends AnyFunSuite with BeforeAndAfter with Matche
     result.podSpec.get.nodeSelector should contain("kubernetes.io/hostname" -> "worker-node-1")
   }
 
-  test("should parse configMap") {
+  test("shows configMap isn't parsed") {
     val yamlContent =
       """priority: 1.0
         |namespace: default
@@ -220,6 +220,81 @@ class JobTemplateLoaderSuite extends AnyFunSuite with BeforeAndAfter with Matche
       JobTemplateLoader.loadJobItemTemplate(templateFile.getAbsolutePath)
     }
     configMapException.getMessage should include("""Error: Unrecognized field "configMap""")
+  }
+
+  test("shows csi isn't parsed") {
+    val yamlContent =
+      """priority: 1.0
+        |namespace: default
+        |labels:
+        |  app: spark-executor
+        |podSpec:
+        |  containers:
+        |    - name: test
+        |      image: busybox:1.28
+        |      command: ['sh', '-c', 'echo "The app is running!" && tail -f /dev/null']
+        |      volumeMounts:
+        |        - name: test-vol
+        |          mountPath: /test
+        |  volumes:
+        |    - name: test-vol
+        |      csi:
+        |        driver: inline.storage.kubernetes.io
+        |        volumeAttributes:
+        |          foo: bar
+        |  restartPolicy: Never
+        |  terminationGracePeriodSeconds: 30
+        |  nodeSelector:
+        |    kubernetes.io/hostname: worker-node-1
+        |  tolerations:
+        |    - key: "dedicated"
+        |      operator: "Equal"
+        |      value: "spark"
+        |      effect: "NoSchedule"
+        |""".stripMargin
+
+    val templateFile = createTemplateFile("podspec-template.yaml", yamlContent)
+    val csiException = intercept[RuntimeException] {
+      JobTemplateLoader.loadJobItemTemplate(templateFile.getAbsolutePath)
+    }
+    csiException.getMessage should include("""Error: Unrecognized field "csi""")
+  }
+
+  test("shows hostPath isn't parsed") {
+    val yamlContent =
+      """priority: 1.0
+        |namespace: default
+        |labels:
+        |  app: spark-executor
+        |podSpec:
+        |  containers:
+        |    - name: test
+        |      image: busybox:1.28
+        |      command: ['sh', '-c', 'echo "The app is running!" && tail -f /dev/null']
+        |      volumeMounts:
+        |        - name: test-vol
+        |          mountPath: /test
+        |  volumes:
+        |    - name: test-vol
+        |      hostPath:
+        |        path: /data
+        |        type: DirectoryOrCreate
+        |  restartPolicy: Never
+        |  terminationGracePeriodSeconds: 30
+        |  nodeSelector:
+        |    kubernetes.io/hostname: worker-node-1
+        |  tolerations:
+        |    - key: "dedicated"
+        |      operator: "Equal"
+        |      value: "spark"
+        |      effect: "NoSchedule"
+        |""".stripMargin
+
+    val templateFile = createTemplateFile("podspec-template.yaml", yamlContent)
+    val hostPathException = intercept[RuntimeException] {
+      JobTemplateLoader.loadJobItemTemplate(templateFile.getAbsolutePath)
+    }
+    hostPathException.getMessage should include("""Error: Unrecognized field "hostPath""")
   }
 
   test("should fail with clear errors for invalid inputs") {

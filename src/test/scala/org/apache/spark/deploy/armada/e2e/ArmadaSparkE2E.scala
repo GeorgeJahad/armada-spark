@@ -139,7 +139,7 @@ class ArmadaSparkE2E
       .withExecutors(3)
       .withPodLabels(Map("test-type" -> "basic"))
       .assertDriverExists()
-      .assertExecutorCount(3)
+      .assertExecutorCount(4)
       .assertPodLabels(Map("test-type" -> "basic"))
       .run()
   }

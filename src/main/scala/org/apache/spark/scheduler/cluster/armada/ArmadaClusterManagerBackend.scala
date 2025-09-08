@@ -16,6 +16,7 @@
  */
 package org.apache.spark.scheduler.cluster.armada
 
+import org.apache.spark.internal.config.SCHEDULER_MIN_REGISTERED_RESOURCES_RATIO
 import org.apache.spark.SparkContext
 import org.apache.spark.deploy.armada.Config.{
   ARMADA_EXECUTOR_TRACKER_POLLING_INTERVAL,
@@ -51,7 +52,7 @@ private[spark] class ArmadaClusterManagerBackend(
   override def start(): Unit = {
     // NOTE: armada-spark driver submits executors alongside driver.
     // No need to start them here.
-    logInfo("Armada Cluster Backend: starting")
+    logInfo("gbj1 Armada Cluster Backend: starting")
     executorTracker.start()
   }
 
@@ -113,6 +114,13 @@ private[spark] class ArmadaClusterManagerBackend(
         //Future.successful(true)
     }
    */
+
+  protected override val minRegisteredRatio =
+    if (conf.get(SCHEDULER_MIN_REGISTERED_RESOURCES_RATIO).isEmpty) {
+      0.8
+    } else {
+      super.minRegisteredRatio
+    }
 
   override def sufficientResourcesRegistered(): Boolean = {
     totalRegisteredExecutors.get() >= initialExecutors * minRegisteredRatio

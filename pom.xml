@@ -9,7 +9,7 @@
 
     <!-- Project Coordinates -->
     <groupId>io.armadaproject.armada</groupId>
-    <artifactId>armada-cluster-manager_2.13</artifactId>
+    <artifactId>armada-cluster-manager_2.12</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -33,13 +33,14 @@
         <!-- configure Spark version -->
         <spark.major.version>3</spark.major.version>
         <spark.minor.version>5</spark.minor.version>
-        <spark.patch.version>3</spark.patch.version>
+        <spark.patch.version>5</spark.patch.version>
         <spark.binary.version>${spark.major.version}.${spark.minor.version}</spark.binary.version>
         <spark.version>${spark.binary.version}.${spark.patch.version}</spark.version>
         <spotless.version>2.44.4</spotless.version>
         <scalafmt.version>3.9.5</scalafmt.version>
 
-        <kubernetes-client.version>7.1.0</kubernetes-client.version>
+        <kubernetes-client.version>6.7.2</kubernetes-client.version>
+        <jackson.version>2.15.2</jackson.version>
         <scalatest-maven-plugin.version>2.2.0</scalatest-maven-plugin.version>
         <!-- SPARK-36796 for JDK-17 test-->
         <extraJavaTestArgs>
@@ -123,6 +124,11 @@
     </repositories>
     <dependencies>
         <dependency>
+          <groupId>io.fabric8</groupId>
+          <artifactId>kubernetes-client</artifactId>
+          <version>${kubernetes-client.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
@@ -136,6 +142,12 @@
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-kubernetes_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -166,17 +178,17 @@
         <dependency>
           <groupId>com.fasterxml.jackson.core</groupId>
           <artifactId>jackson-databind</artifactId>
-          <version>2.15.2</version>
+          <version>${jackson.version}</version>
         </dependency>
         <dependency>
           <groupId>com.fasterxml.jackson.dataformat</groupId>
           <artifactId>jackson-dataformat-yaml</artifactId>
-          <version>2.15.2</version>
+          <version>${jackson.version}</version>
         </dependency>
         <dependency>
           <groupId>com.fasterxml.jackson.module</groupId>
           <artifactId>jackson-module-scala_${scala.binary.version}</artifactId>
-          <version>2.15.2</version>
+          <version>${jackson.version}</version>
         </dependency>
     </dependencies>
 
@@ -276,6 +288,24 @@
                         </manifest>
                     </archive>
                 </configuration>
+                <executions>
+                    <!-- Build test feature step JAR for e2e tests -->
+                    <execution>
+                        <id>test-feature-step-jar</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/extraJars</outputDirectory>
+                            <finalName>test-feature-step</finalName>
+                            <includes>
+                                <include>org/apache/spark/deploy/armada/e2e/featurestep/**</include>
+                            </includes>
+                            <skipIfEmpty>true</skipIfEmpty>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <!-- Fatjar and dependency shading Plugin -->
             <plugin>

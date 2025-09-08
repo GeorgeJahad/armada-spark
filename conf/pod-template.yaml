@@ -1,0 +1,12 @@
+podSpec:
+  containers:
+    - name: spark-kubernetes-executor
+      resources:
+        requests:
+          cpu: '1'
+          memory: 4000Mi
+          ephemeral-storage: 200Gi
+        limits:
+          cpu: '1'
+          memory: 4000Mi
+          ephemeral-storage: 200Gi

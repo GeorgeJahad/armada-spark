@@ -28,7 +28,7 @@ import scala.io.Source
 import scala.util.{Try, Using}
 
 private[submit] object ConfigGenerator {
-  val REMOTE_CONF_DIR_NAME = "/opt/spark/conf"
+  val REMOTE_CONF_DIR_NAME = "/tmp/extraConf"
   val ENV_SPARK_CONF_DIR   = "SPARK_CONF_DIR"
 }
 
@@ -38,10 +38,11 @@ private[submit] class ConfigGenerator(val prefix: String, val conf: SparkConf) {
 
   private val confFiles = getConfFiles
   private def getConfFiles: Array[File] = {
+    val VALID_FILE_NAME_REGEX = "([\\w][-\\w.]*)?[\\w]"
     confDir
       .map(new File(_))
       .filter(_.isDirectory)
-      .map(_.listFiles.filter(!_.isDirectory))
+      .map(_.listFiles.filter(f => !f.isDirectory && f.getName.matches(VALID_FILE_NAME_REGEX)))
       .getOrElse(Array.empty)
   }
 

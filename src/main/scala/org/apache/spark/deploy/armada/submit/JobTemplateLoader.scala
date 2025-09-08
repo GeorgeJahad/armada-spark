@@ -17,14 +17,24 @@
 package org.apache.spark.deploy.armada.submit
 
 import api.submit.{JobSubmitRequest, JobSubmitRequestItem}
-import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
+import com.fasterxml.jackson.core.{JsonParser, JsonProcessingException}
+import com.fasterxml.jackson.databind.{
+  DeserializationContext,
+  DeserializationFeature,
+  JsonDeserializer,
+  JsonNode,
+  ObjectMapper
+}
+import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import k8s.io.api.core.v1.generated.PodSpec
+import io.fabric8.kubernetes.api.model
 
 import java.io.File
 import java.net.{HttpURLConnection, URL}
 import scala.io.Source
-import scala.util.{Failure, Success, Try, Using}
+import scala.util.{Failure, Success, Try}
 
 /** Utility class for loading job templates from various sources.
   *
@@ -42,7 +52,31 @@ private[spark] object JobTemplateLoader {
     val mapper = new ObjectMapper(new YAMLFactory())
     mapper.registerModule(DefaultScalaModule)
     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+
+    // The generated Scala classes from the PodSpec proto differ from standard Kubernetes PodSpec manifest and fabric8 PodSpec model.
+    // We use a custom mapper which first deserializes to fabric8 PodSpec, then converts to the protobuf PodSpec using PodSpecConverter.
+    val module = new SimpleModule()
+    module.addDeserializer(classOf[PodSpec], new PodSpecDeserializer())
+    mapper.registerModule(module)
+
     mapper
+  }
+
+  /** Custom deserializer for PodSpec objects.
+    *
+    * Uses fabric8 Kubernetes client models, then converts to protobuf using PodSpecConverter.
+    */
+  private class PodSpecDeserializer extends JsonDeserializer[PodSpec] {
+    @throws(classOf[JsonProcessingException])
+    override def deserialize(p: JsonParser, ctxt: DeserializationContext): PodSpec = {
+      val node = p.getCodec.readTree(p).asInstanceOf[JsonNode]
+
+      // Convert JsonNode directly to fabric8 PodSpec using Jackson's treeToValue
+      val mapper         = p.getCodec.asInstanceOf[ObjectMapper]
+      val fabric8PodSpec = mapper.treeToValue(node, classOf[model.PodSpec])
+
+      PodSpecConverter.fabric8ToProtobuf(fabric8PodSpec)
+    }
   }
 
   /** Loads a JobSubmitRequest template from the specified path.
@@ -100,13 +134,19 @@ private[spark] object JobTemplateLoader {
       connection.setConnectTimeout(10000) // 10 seconds
       connection.setReadTimeout(30000)    // 30 seconds
 
-      Using(connection.getInputStream) { inputStream =>
+      val inputStream = connection.getInputStream
+      try {
         Source.fromInputStream(inputStream, "UTF-8").mkString
-      }.get
+      } finally {
+        inputStream.close()
+      }
     } match {
       case Success(content) => content
       case Failure(exception) =>
-        throw new RuntimeException(s"Failed to load template from URL: $url", exception)
+        throw new RuntimeException(
+          s"Failed to load template from URL: $url (${exception.getClass.getSimpleName}: ${exception.getMessage})",
+          exception
+        )
     }
   }
 
@@ -124,13 +164,19 @@ private[spark] object JobTemplateLoader {
         throw new RuntimeException(s"Cannot read template file: $filePath")
       }
 
-      Using(Source.fromFile(file, "UTF-8")) { source =>
+      val source = Source.fromFile(file, "UTF-8")
+      try {
         source.mkString
-      }.get
+      } finally {
+        source.close()
+      }
     } match {
       case Success(content) => content
       case Failure(exception) =>
-        throw new RuntimeException(s"Failed to load template from file: $filePath", exception)
+        throw new RuntimeException(
+          s"Failed to load template from file: $filePath (${exception.getClass.getSimpleName}: ${exception.getMessage})",
+          exception
+        )
     }
   }
 
@@ -154,8 +200,8 @@ private[spark] object JobTemplateLoader {
       case Success(template) => template
       case Failure(exception) =>
         throw new RuntimeException(
-          s"Failed to parse template as YAML from: $templatePath. " +
-            s"Error: ${exception.getMessage}",
+          s"Failed to parse template as YAML from: $templatePath " +
+            s"(${exception.getClass.getSimpleName}: ${exception.getMessage})",
           exception
         )
     }

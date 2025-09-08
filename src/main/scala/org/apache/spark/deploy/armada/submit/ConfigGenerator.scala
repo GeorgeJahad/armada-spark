@@ -28,7 +28,7 @@ import scala.io.Source
 import scala.util.{Try, Using}
 
 private[submit] object ConfigGenerator {
-  val REMOTE_CONF_DIR_NAME = "/opt/spark/conf"
+  val REMOTE_CONF_DIR_NAME = "/tmp/extraConf"
   val ENV_SPARK_CONF_DIR   = "SPARK_CONF_DIR"
 }
 

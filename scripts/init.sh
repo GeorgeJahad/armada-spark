@@ -8,6 +8,10 @@ scripts="$(cd "$(dirname "$0")"; pwd)"
 if [ -e "$scripts/config.sh" ]; then
     source "$scripts/config.sh"
 fi
+export SCALA_VERSION=2.12.18
+export SCALA_BIN_VERSION=2.12
+export SPARK_VERSION=3.3.4
+export SPARK_BIN_VERSION=3.3
 
 print_usage () {
     echo ' Usage:'

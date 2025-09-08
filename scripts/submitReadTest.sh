@@ -45,6 +45,7 @@ fi
 # Disable config maps until this is fixed: https://github.com/G-Research/spark/issues/109
 DISABLE_CONFIG_MAP=true
 
+IMAGE_NAME=image
 # Run Armada Spark via docker image
 docker run -v $scripts/../conf:/opt/spark/conf --rm --network host $IMAGE_NAME \
     /opt/spark/bin/spark-class org.apache.spark.deploy.ArmadaSparkSubmit \
@@ -53,10 +54,17 @@ docker run -v $scripts/../conf:/opt/spark/conf --rm --network host $IMAGE_NAME \
     $CLASS_PROMPT $CLASS_ARG \
     $AUTH_ARG \
     --conf spark.home=/opt/spark \
-    --conf spark.executor.instances=2 \
+    --conf spark.executor.instances=1 \
     --conf spark.armada.container.image=$IMAGE_NAME \
     --conf spark.armada.jobSetId="$JOBSET" \
     --conf spark.kubernetes.file.upload.path=/tmp \
     --conf spark.kubernetes.executor.disableConfigMap=$DISABLE_CONFIG_MAP \
+    --conf spark.hadoop.fs.s3a.bucket.$SPARK_PLAYPEN.endpoint=$SPARK_PLAYPEN_ENDPOINT \
+    --conf spark.kubernetes.driver.secretKeyRef.AWS_SECRET_ACCESS_KEY=$SPARK_SECRET_KEY:secret_key \
+    --conf spark.kubernetes.executor.secretKeyRef.AWS_SECRET_ACCESS_KEY=$SPARK_SECRET_KEY:secret_key \
+    --conf spark.kubernetes.driver.secretKeyRef.AWS_ACCESS_KEY_ID=$SPARK_SECRET_KEY:access_key \
+    --conf spark.kubernetes.executor.secretKeyRef.AWS_ACCESS_KEY_ID=$SPARK_SECRET_KEY:access_key \
     --conf spark.local.dir=/tmp \
-    $FIRST_ARG  "${FINAL_ARGS[@]}"
+    /opt/spark/extraFiles/python/rt100.py s3a://parquet-file 100 s3a://playpen-$USERNAME/armada-rt2
+
+

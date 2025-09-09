@@ -2,11 +2,13 @@
 set -euo pipefail
 
 echo Submitting spark job to Armada.
+echo gbj1
 
 # init environment variables
-bscripts="$(cd "$(dirname "$0")"; pwd)"
-source "$bscripts/../init.sh"
+scripts="$(cd "$(dirname "$0")"; pwd)"
+source "$scripts/init.sh"
 
+echo gbj2
 JOBSET="${JOBSET:-armada-spark}"
 
 
@@ -28,6 +30,7 @@ ALL_TESTS="" #currrently takes days
 
 TESTS_TO_RUN="${TESTS_TO_RUN:-q14a-v2.4}"
 
+echo gbj3
 # Run Armada Spark via docker image
 docker run --rm --network host $IMAGE_NAME \
     /opt/spark/bin/spark-class org.apache.spark.deploy.ArmadaSparkSubmit \
@@ -40,7 +43,7 @@ docker run --rm --network host $IMAGE_NAME \
     --conf spark.armada.container.image=$IMAGE_NAME \
     --conf spark.armada.jobSetId=${JOBSET} \
     --conf spark.kubernetes.file.upload.path=/tmp \
-    local:///opt/spark/examples/jars/eks-spark-benchmark-assembly-1.0.jar \
+    local:///opt/spark/jars/eks-spark-benchmark-assembly-1.0.jar \
     s3a://kafka-s3/data/benchmark/data/10t \
     s3a://kafka-s3/data/benchmark/results/armada2 \
     /opt/tpcds-kit/tools \

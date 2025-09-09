@@ -693,8 +693,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       armadaJobConfig,
       ArmadaClientApplication.DRIVER_PORT,
       clientArguments.mainClass,
-      configGenerator.getVolumes,
-      configGenerator.getVolumeMounts,
+      Seq.empty,
+      Seq.empty,
       driverArgs
     )
 
@@ -1101,7 +1101,6 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       .withArgs(
         Seq(
           "driver",
-          "--verbose",
           "--master",
           master,
           "--class",
@@ -1170,7 +1169,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           .map(value => Quantity(Option(value)))
           .orElse(templateResources.flatMap(_.limits.get("cpu")))
           .getOrElse(Quantity(Option(DEFAULT_CORES)))
-      }
+      },
+      "ephemeral-storage" -> Quantity(Option("200Gi"))
     ) ++ extractAdditionalTemplateResources(templateResources, "limits")
 
     val executorRequests = Map(
@@ -1185,7 +1185,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           .map(value => Quantity(Option(value)))
           .orElse(templateResources.flatMap(_.requests.get("cpu")))
           .getOrElse(Quantity(Option(DEFAULT_CORES)))
-      }
+	    },
+      "ephemeral-storage" -> Quantity(Option("200Gi"))
     ) ++ extractAdditionalTemplateResources(templateResources, "requests")
 
     val envVars = Seq(
@@ -1445,7 +1446,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       nodeUniformityLabel: Option[String],
       executorCount: Int
   ): Map[String, String] = {
-    configGenerator.getAnnotations ++ templateAnnotations ++ nodeUniformityLabel
+    templateAnnotations ++ nodeUniformityLabel
       .map(label =>
         GangSchedulingAnnotations(
           None,

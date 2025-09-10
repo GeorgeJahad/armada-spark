@@ -28,6 +28,7 @@ docker run -e KUBECONFIG=/opt/spark/extraFiles/kubeconfig --rm --network host $I
     --name k8s-spark-benchmark \
     --class com.amazonaws.eks.tpcds.BenchmarkSQL \
     --conf spark.kubernetes.executor.podTemplateFile=/opt/spark/conf/pod-template.yaml \
+    --conf spark.kubernetes.driver.podTemplateFile=/opt/spark/conf/driver-pod-template.yaml \
     --conf spark.hadoop.fs.s3a.secret.key=$AWS_SECRET_ACCESS_KEY \
     --conf spark.hadoop.fs.s3a.access.key=$AWS_ACCESS_KEY_ID \
     --conf spark.kubernetes.container.image=$IMAGE_NAME \

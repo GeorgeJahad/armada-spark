@@ -1,20 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
-echo Submitting spark job to Armada.
+echo Submitting spark job to K8s.
 
 # init environment variables
 scripts="$(cd "$(dirname "$0")"; pwd)"
 source "$scripts/init.sh"
 
-JOBSET="${JOBSET:-armada-spark}"
-
-
-if [ "$ARMADA_AUTH_TOKEN" != "" ]; then
-    AUTH_ARG=" --conf spark.armada.auth.token=$ARMADA_AUTH_TOKEN"
-else
-    AUTH_ARG=""
-fi
+JOBSET="${JOBSET:-k8s-spark}"
 
 # Disable config maps until this is fixed: https://github.com/G-Research/spark/issues/109
 DISABLE_CONFIG_MAP=true
@@ -28,21 +21,20 @@ ALL_TESTS="" #currrently takes days
 
 TESTS_TO_RUN="${TESTS_TO_RUN:-q14a-v2.4}"
 
-# Run Armada Spark via docker image
-docker run --rm --network host $IMAGE_NAME \
-    /opt/spark/bin/spark-class org.apache.spark.deploy.ArmadaSparkSubmit \
-    --master $ARMADA_MASTER --deploy-mode cluster \
-    --name spark-benchmark \
+# Run K8s Spark via docker image
+docker run -e KUBECONFIG=/opt/spark/extraFiles/kubeconfig --rm --network host $IMAGE_NAME \
+    /opt/spark/bin/spark-class org.apache.spark.deploy.SparkSubmit \
+    --master $K8S_MASTER --deploy-mode cluster \
+    --name k8s-spark-benchmark \
     --class com.amazonaws.eks.tpcds.BenchmarkSQL \
-    $AUTH_ARG \
+    --conf spark.kubernetes.executor.podTemplateFile=/opt/spark/conf/pod-template.yaml \
     --conf spark.hadoop.fs.s3a.secret.key=$AWS_SECRET_ACCESS_KEY \
     --conf spark.hadoop.fs.s3a.access.key=$AWS_ACCESS_KEY_ID \
-    --conf spark.armada.container.image=$IMAGE_NAME \
-    --conf spark.armada.jobSetId=${JOBSET} \
-    --conf spark.kubernetes.file.upload.path=/tmp \
+    --conf spark.kubernetes.container.image=$IMAGE_NAME \
+    --conf spark.kubernetes.jobSetId=${JOBSET} \
     local:///opt/spark/jars/eks-spark-benchmark-assembly-1.0.jar \
     s3a://kafka-s3/data/benchmark/data/10t \
-    s3a://kafka-s3/data/benchmark/results/armada3 \
+    s3a://kafka-s3/data/benchmark/results/k8s3 \
     /opt/tpcds-kit/tools \
     parquet \
     10000 \

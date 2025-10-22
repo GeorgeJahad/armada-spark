@@ -2090,7 +2090,7 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       priority = 1.0,
       namespace = "default",
       podSpec = Some(
-        PodSpec()
+        PodSpec().withServiceAccount("service-account")
           .withVolumes(
             Seq(
               Volume()
@@ -2188,6 +2188,10 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
     )
 
     val podSpec = result.podSpec.get
+
+    //verify service account
+    val serviceAccount = podSpec.getServiceAccount
+    serviceAccount shouldBe "service-account"
 
     // Verify volumes: should have both template-volume and feature-step-volume, no duplicates
     val volumeNames = podSpec.volumes.map(_.name).flatten

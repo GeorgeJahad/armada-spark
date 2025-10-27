@@ -812,12 +812,12 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
 
     val baseJobItem = armadaJobConfig.driverFeatureStepJobItem.getOrElse(createBlankTemplate())
     val basePod = baseJobItem.podSpec
-      .map(PodMerger.protobufToFabric8Pod)
+      .map(PodSpecConverter.protobufPodSpecToFabric8Pod)
       .getOrElse(new io.fabric8.kubernetes.api.model.Pod())
 
     val afterTemplate = template.flatMap(_.podSpec) match {
       case Some(templatePodSpec) =>
-        val templatePod = PodMerger.protobufToFabric8Pod(templatePodSpec)
+        val templatePod = PodSpecConverter.protobufPodSpecToFabric8Pod(templatePodSpec)
         PodMerger.mergePods(base = basePod, overriding = templatePod)
       case None =>
         basePod
@@ -875,7 +875,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
 
     val sidecars = extractSidecarContainers(baseJobItem.podSpec)
 
-    val currentPodSpec    = PodMerger.fabric8PodToProtobuf(afterCLIVolumes)
+    val currentPodSpec    = PodSpecConverter.fabric8PodToProtobufPodSpec(afterCLIVolumes)
     val allInitContainers = currentPodSpec.initContainers
 
     val finalPodSpec = currentPodSpec
@@ -1078,12 +1078,12 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
 
     val baseJobItem = armadaJobConfig.executorFeatureStepJobItem.getOrElse(createBlankTemplate())
     val basePod = baseJobItem.podSpec
-      .map(PodMerger.protobufToFabric8Pod)
+      .map(PodSpecConverter.protobufPodSpecToFabric8Pod)
       .getOrElse(new io.fabric8.kubernetes.api.model.Pod())
 
     val afterTemplate = template.flatMap(_.podSpec) match {
       case Some(templatePodSpec) =>
-        val templatePod = PodMerger.protobufToFabric8Pod(templatePodSpec)
+        val templatePod = PodSpecConverter.protobufPodSpecToFabric8Pod(templatePodSpec)
         PodMerger.mergePods(base = basePod, overriding = templatePod)
       case None => basePod
     }
@@ -1153,7 +1153,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       conf.get(ARMADA_EXECUTOR_INIT_CONTAINER_MEMORY)
     )
 
-    val currentPodSpec = PodMerger.fabric8PodToProtobuf(afterCLIVolumes)
+    val currentPodSpec = PodSpecConverter.fabric8PodToProtobufPodSpec(afterCLIVolumes)
     val allInitContainers =
       PodMerger.mergeByName(currentPodSpec.initContainers, Seq(executorInitContainer))(_.name)
 

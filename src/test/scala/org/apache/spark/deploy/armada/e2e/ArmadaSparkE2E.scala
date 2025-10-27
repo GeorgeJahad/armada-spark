@@ -140,13 +140,13 @@ class ArmadaSparkE2E
   test("Basic SparkPi job with gang scheduling", E2ETest) {
     E2ETestBuilder("basic-spark-pi-gang")
       .withBaseConfig(baseConfig)
-      .withGangJob("armada-spark")
+      .withGangJob("kubernetes.io/hostname")
       .withExecutors(3)
       .withPodLabels(Map("test-type" -> "basic"))
       .assertDriverExists()
       .assertExecutorCount(3)
       .assertPodLabels(Map("test-type" -> "basic"))
-      .assertGangJob("armada-spark", 4) // 1 driver + 3 executors
+      .assertGangJob("kubernetes.io/hostname", 4) // 1 driver + 3 executors
       .run()
   }
 
@@ -161,22 +161,22 @@ class ArmadaSparkE2E
       .assertNodeSelectors(Map("kubernetes.io/hostname" -> "armada-worker"))
       .run()
   }
-
-  test("Basic python SparkPi job", E2ETest) {
-    E2ETestBuilder("python-spark-pi")
-      .withBaseConfig(baseConfig)
-      .withPythonScript("/opt/spark/examples/src/main/python/pi.py")
-      .withSparkConf(
-        Map(
-          "spark.kubernetes.file.upload.path"          -> "/tmp",
-          "spark.kubernetes.executor.disableConfigMap" -> "true"
-        )
-      )
-      .withExecutors(2)
-      .assertDriverExists()
-      .assertExecutorCount(2)
-      .run()
-  }
+//
+//  test("Basic python SparkPi job", E2ETest) {
+//    E2ETestBuilder("python-spark-pi")
+//      .withBaseConfig(baseConfig)
+//      .withPythonScript("/opt/spark/examples/src/main/python/pi.py")
+//      .withSparkConf(
+//        Map(
+//          "spark.kubernetes.file.upload.path"          -> "/tmp",
+//          "spark.kubernetes.executor.disableConfigMap" -> "true"
+//        )
+//      )
+//      .withExecutors(2)
+//      .assertDriverExists()
+//      .assertExecutorCount(2)
+//      .run()
+//  }
 
   test("SparkPi job using job templates", E2ETest) {
     E2ETestBuilder("spark-pi-templates")

@@ -1609,4 +1609,19 @@ object PodSpecConverter {
 
     Some(volume)
   }
+
+  /** Convert protobuf PodSpec to fabric8 Pod with empty metadata. */
+  def protobufPodSpecToFabric8Pod(protobufPodSpec: generated.PodSpec): model.Pod = {
+    val fabric8Spec = protobufToFabric8(protobufPodSpec)
+    new model.PodBuilder()
+      .withNewMetadata()
+      .endMetadata()
+      .withSpec(fabric8Spec)
+      .build()
+  }
+
+  /** Convert fabric8 Pod to protobuf PodSpec. */
+  def fabric8PodToProtobufPodSpec(pod: model.Pod): generated.PodSpec = {
+    fabric8ToProtobuf(pod.getSpec)
+  }
 }

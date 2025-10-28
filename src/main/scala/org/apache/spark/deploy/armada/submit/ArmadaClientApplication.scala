@@ -257,13 +257,21 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     )
   }
 
+  private case class DriverJobItemResult(
+      jobItem: api.submit.JobSubmitRequestItem,
+      configGenerator: ConfigGenerator,
+      templateAnnotations: Map[String, String],
+      templateLabels: Map[String, String],
+      confSeq: Seq[String]
+  )
+
   private def buildDriverJobItem(
       clientArguments: ClientArguments,
       armadaJobConfig: ArmadaJobConfig,
       conf: SparkConf,
       executorCount: Int,
       maybeGangId: Option[String]
-  ): api.submit.JobSubmitRequestItem = {
+  ): DriverJobItemResult = {
     val primaryResource = extractPrimaryResource(clientArguments.mainAppResource)
     val confSeq         = buildSparkConfArgs(conf)
     val configGenerator = new ConfigGenerator("armada-spark-config", conf)
@@ -291,7 +299,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       conf
     )
 
-    createDriverJob(
+    val jobItem = createDriverJob(
       armadaJobConfig,
       resolvedConfig,
       configGenerator,
@@ -299,6 +307,14 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       primaryResource,
       confSeq,
       conf
+    )
+
+    DriverJobItemResult(
+      jobItem = jobItem,
+      configGenerator = configGenerator,
+      templateAnnotations = templateAnnotations,
+      templateLabels = templateLabels,
+      confSeq = confSeq
     )
   }
 
@@ -312,14 +328,14 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     val maybeGangId =
       armadaJobConfig.cliConfig.nodeUniformityLabel.map(_ => java.util.UUID.randomUUID.toString)
 
-    val driver = buildDriverJobItem(
+    val result = buildDriverJobItem(
       clientArguments,
       armadaJobConfig,
       conf,
       executorCount,
       maybeGangId
     )
-    submitDriver(armadaClient, armadaJobConfig.queue, armadaJobConfig.jobSetId, driver)
+    submitDriver(armadaClient, armadaJobConfig.queue, armadaJobConfig.jobSetId, result.jobItem)
   }
 
   private[spark] def submitExecutorJobs(
@@ -336,13 +352,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       )
     }
 
-    val confSeq         = buildSparkConfArgs(conf)
-    val configGenerator = new ConfigGenerator("armada-spark-config", conf)
-
-    val (templateAnnotations, templateLabels) = extractTemplateMetadata(armadaJobConfig.jobTemplate)
-
     // Build driver job item again for feature steps that require it when constructing executor pods
-    val driverJobItem = buildDriverJobItem(
+    val driverResult = buildDriverJobItem(
       clientArguments,
       armadaJobConfig,
       conf,
@@ -352,13 +363,13 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
 
     val executorLabels = buildLabels(
       armadaJobConfig.cliConfig.podLabels,
-      templateLabels,
+      driverResult.templateLabels,
       armadaJobConfig.cliConfig.executorLabels
     )
 
     val executorRuntimeAnnotations = buildAnnotations(
-      configGenerator,
-      templateAnnotations,
+      driverResult.configGenerator,
+      driverResult.templateAnnotations,
       armadaJobConfig.cliConfig.nodeUniformityLabel,
       executorCount,
       None
@@ -376,11 +387,11 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     val executors = createExecutorJobs(
       armadaJobConfig,
       executorResolvedConfig,
-      configGenerator,
+      driverResult.configGenerator,
       driverHostname,
       executorCount,
       conf,
-      driverJobItem
+      driverResult.jobItem
     )
     submitExecutors(
       armadaClient,

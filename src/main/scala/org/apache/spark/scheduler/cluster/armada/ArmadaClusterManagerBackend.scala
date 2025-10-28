@@ -35,7 +35,7 @@ import org.apache.spark.rpc.{RpcAddress, RpcCallContext}
 import org.apache.spark.scheduler.{ExecutorDecommission, ExecutorDecommissionInfo, ExecutorExited, ExecutorKilled, ExecutorLossReason, TaskSchedulerImpl}
 import org.apache.spark.scheduler.cluster.{CoarseGrainedSchedulerBackend, SchedulerBackendUtils}
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages._
-import org.apache.spark.scheduler.cluster.armada.ArmadaClusterMessages._
+import org.apache.spark.scheduler.cluster.k8s.GenerateExecID
 import org.apache.spark.util.{Clock, SystemClock, ThreadUtils, Utils}
 
 /**

@@ -311,9 +311,9 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       clientArguments: ClientArguments,
       armadaJobConfig: ArmadaJobConfig,
       conf: SparkConf,
-      driverJobId: String
+      driverJobId: String,
+      executorCount: Int
   ): Seq[String] = {
-    val executorCount = SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
     if (executorCount <= 0) {
       throw new IllegalArgumentException(
         s"Executor count must be greater than 0, but got: $executorCount"
@@ -401,14 +401,21 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       armadaJobConfig: ArmadaJobConfig,
       conf: SparkConf
   ): (String, Seq[String]) = {
-    val executorCount = SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
+    val executorCount = conf.getInt("spark.dynamicAllocation.minExecutors", 0)
     if (executorCount <= 0) {
       throw new IllegalArgumentException(
         s"Executor count must be greater than 0, but got: $executorCount"
       )
     }
     val driverJobId    = submitDriverJob(armadaClient, clientArguments, armadaJobConfig, conf)
-    val executorJobIds = submitExecutorJobs(armadaClient, clientArguments, armadaJobConfig, conf, driverJobId)
+    val executorJobIds = submitExecutorJobs(
+      armadaClient,
+      clientArguments,
+      armadaJobConfig,
+      conf,
+      driverJobId,
+      executorCount
+    )
     (driverJobId, executorJobIds)
   }
 
@@ -1533,15 +1540,19 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       executorCount: Int,
       gangId: Option[String]
   ): Map[String, String] = {
-    configGenerator.getAnnotations ++ templateAnnotations ++ nodeUniformityLabel
-      .map(label =>
-        GangSchedulingAnnotations(
-          gangId,
-          1 + executorCount,
-          label
-        )
-      )
-      .getOrElse(Map.empty)
+    // Gang scheduling annotations are temporarily disabled/commented out.
+    // Previously, we added GangSchedulingAnnotations here using nodeUniformityLabel and executorCount.
+    // Now we only merge the generator and template annotations.
+    configGenerator.getAnnotations ++ templateAnnotations
+    // ++ nodeUniformityLabel
+    //   .map(label =>
+    //     GangSchedulingAnnotations(
+    //       gangId,
+    //       1 + executorCount,
+    //       label
+    //     )
+    //   )
+    //   .getOrElse(Map.empty)
   }
 
   private def buildLabels(

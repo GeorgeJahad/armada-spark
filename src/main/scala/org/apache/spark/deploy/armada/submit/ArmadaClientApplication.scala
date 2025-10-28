@@ -407,7 +407,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       armadaJobConfig: ArmadaJobConfig,
       conf: SparkConf
   ): (String, Seq[String]) = {
-    val executorCount = conf.getInt("spark.dynamicAllocation.minExecutors", 0)
+    val executorCount = conf.getInt("spark.dynamicAllocation.minExecutors",
+      SchedulerBackendUtils.getInitialTargetExecutorNumber(conf))
     if (executorCount <= 0) {
       throw new IllegalArgumentException(
         s"Executor count must be greater than 0, but got: $executorCount"

@@ -159,8 +159,8 @@ private[spark] class ArmadaExecutorAllocator(
         proxyUser = (None: Option[String])
       )
 
-      // Use the current Spark applicationId as a stand-in for driver job ID until proper wiring exists
-      val driverJobId = applicationId
+      // Set the driverJobId from ARMADA_JOB_ID env var if present, otherwise fall back to applicationId
+      val driverJobId = sys.env.getOrElse("ARMADA_JOB_ID", applicationId)
 
       val submittedJobIds = app.submitExecutorJobs(
         armadaClient,

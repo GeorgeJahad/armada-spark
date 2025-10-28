@@ -109,7 +109,7 @@ private[spark] class ArmadaClusterManagerBackend(
         try {
           queue = Some(q)
           jobSetId = Some(jsId)
-          namespace = conf.get(ARMADA_NAMESPACE)
+          namespace = conf.get(ARMADA_SPARK_JOB_NAMESPACE)
 
           val serverUrl = conf.get(ARMADA_SERVER_INTERNAL_URL).getOrElse(masterURL)
           val (host, port) = ArmadaUtils.parseMasterUrl(serverUrl)

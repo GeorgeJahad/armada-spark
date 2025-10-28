@@ -330,7 +330,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       configGenerator,
       templateAnnotations,
       armadaJobConfig.cliConfig.nodeUniformityLabel,
-      executorCount
+      executorCount,
+      None
     )
     val driverRuntimeLabels = buildLabels(
       armadaJobConfig.cliConfig.podLabels,
@@ -366,7 +367,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       templateAnnotations,
       armadaJobConfig.cliConfig.nodeUniformityLabel,
       executorCount,
-      maybeGangId
+      None
     )
 
     val executorResolvedConfig = resolveJobConfig(

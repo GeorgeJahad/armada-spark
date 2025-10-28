@@ -306,7 +306,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     submitDriver(armadaClient, armadaJobConfig.queue, armadaJobConfig.jobSetId, driver)
   }
 
-  private[submit] def submitExecutorJobs(
+  private[spark] def submitExecutorJobs(
       armadaClient: ArmadaClient,
       clientArguments: ClientArguments,
       armadaJobConfig: ArmadaJobConfig,
@@ -1132,11 +1132,17 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
         .withApiVersion("v1")
         .withFieldPath("status.podIP")
     )
+    val armadaJobIdSource = EnvVarSource().withFieldRef(
+      ObjectFieldSelector()
+        .withApiVersion("v1")
+        .withFieldPath("metadata.labels['armada_job_id']")
+    )
     val envVars = Seq(
       EnvVar().withName("SPARK_DRIVER_BIND_ADDRESS").withValueFrom(source),
       EnvVar()
         .withName(ConfigGenerator.ENV_SPARK_CONF_DIR)
-        .withValue(ConfigGenerator.REMOTE_CONF_DIR_NAME)
+        .withValue(ConfigGenerator.REMOTE_CONF_DIR_NAME),
+      EnvVar().withName("ARMADA_JOB_ID").withValueFrom(armadaJobIdSource)
     )
 
     val templateResources = extractResourcesFromTemplate(armadaJobConfig.driverJobItemTemplate)
@@ -1233,6 +1239,11 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
         .withApiVersion("v1")
         .withFieldPath("metadata.name")
     )
+    val armadaJobIdSource = EnvVarSource().withFieldRef(
+      ObjectFieldSelector()
+        .withApiVersion("v1")
+        .withFieldPath("metadata.labels['armada_job_id']")
+    )
     val sparkExecutorMemory =
       conf.getOption("spark.executor.memory").getOrElse(DEFAULT_SPARK_EXECUTOR_MEMORY)
     val sparkExecutorCores =
@@ -1273,7 +1284,9 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     val envVars = Seq(
       EnvVar().withName("SPARK_EXECUTOR_ID").withValue("EXECID"),
       EnvVar().withName("SPARK_RESOURCE_PROFILE_ID").withValue("0"),
-      EnvVar().withName("SPARK_EXECUTOR_POD_NAME").withValueFrom(podName),
+      // Ensure executor pod name is based on Armada job id label by referencing ARMADA_JOB_ID
+      EnvVar().withName("SPARK_EXECUTOR_POD_NAME").withValueFrom(armadaJobIdSource),
+      EnvVar().withName("ARMADA_JOB_ID").withValueFrom(armadaJobIdSource),
       EnvVar()
         .withName("SPARK_APPLICATION_ID")
         .withValue(armadaJobConfig.applicationId),

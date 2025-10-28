@@ -144,7 +144,44 @@ private[spark] class ArmadaExecutorAllocator(
       resourceProfile: ResourceProfile,
       rpId: Int): Unit = {
 
-    logInfo(s"Stub/Submitting $count executor jobs for resource profile $rpId")
+    try {
+      // Build minimal context for Armada submission using existing SparkConf
+      val app = new org.apache.spark.deploy.armada.submit.ArmadaClientApplication()
+
+      // Validate/load Armada job config from SparkConf
+      val armadaJobConfig = app.validateArmadaJobConfig(conf)
+
+      // Construct minimal ClientArguments; values are placeholders sufficient for executor submission path
+      val clientArgs = org.apache.spark.deploy.armada.submit.ClientArguments(
+        mainAppResource = org.apache.spark.deploy.k8s.submit.JavaMainAppResource(Some("local:///dev/null")),
+        mainClass = "org.apache.spark.examples.SparkPi",
+        driverArgs = Array.empty[String],
+        proxyUser = (None: Option[String])
+      )
+
+      // Use the current Spark applicationId as a stand-in for driver job ID until proper wiring exists
+      val driverJobId = applicationId
+
+      val submittedJobIds = app.submitExecutorJobs(
+        armadaClient,
+        clientArgs,
+        armadaJobConfig,
+        conf,
+        driverJobId,
+        count
+      )
+
+      // Track pending executors and map executor IDs to Armada job IDs
+      submittedJobIds.foreach { jobId =>
+        val execId = s"${rpId}-${executorIdCounter.incrementAndGet()}"
+        executorToJobId.put(execId, jobId)
+        pendingExecutors.synchronized { pendingExecutors += execId }
+        logInfo(s"Submitted executor (execId=$execId) as Armada jobId=$jobId for RP=$rpId")
+      }
+    } catch {
+      case NonFatal(e) =>
+        logError(s"Failed to submit $count executor jobs for RP=$rpId: ${e.getMessage}", e)
+    }
   }
 
   // ========================================================================

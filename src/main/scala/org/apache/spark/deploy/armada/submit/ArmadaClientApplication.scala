@@ -1208,7 +1208,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     ) ++ extractAdditionalTemplateResources(templateResources, "requests")
 
     val envVars = Seq(
-      EnvVar().withName("SPARK_EXECUTOR_ID").withValue(index.toString),
+      EnvVar().withName("SPARK_EXECUTOR_ID").withValue("EXECID"),
       EnvVar().withName("SPARK_RESOURCE_PROFILE_ID").withValue("0"),
       EnvVar().withName("SPARK_EXECUTOR_POD_NAME").withValueFrom(podName),
       EnvVar()

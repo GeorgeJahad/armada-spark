@@ -405,6 +405,68 @@ private[spark] object Config {
       .stringConf
       .createOptional
 
+  val ARMADA_NAMESPACE: OptionalConfigEntry[String] =
+    ConfigBuilder("spark.armada.namespace")
+      .doc("Kubernetes namespace for Armada jobs. If not set, the default namespace will be used.")
+      .stringConf
+      .createOptional
+
+  val ARMADA_DELETE_EXECUTORS: ConfigEntry[Boolean] =
+    ConfigBuilder("spark.armada.deleteExecutors")
+      .doc("Whether to delete executor jobs when the backend stops.")
+      .booleanConf
+      .createWithDefault(true)
+
+  val ARMADA_KILL_GRACE_PERIOD: ConfigEntry[Long] =
+    ConfigBuilder("spark.armada.killGracePeriod")
+      .doc("Grace period in milliseconds before forcefully killing executors.")
+      .timeConf(TimeUnit.MILLISECONDS)
+      .checkValue(_ > 0, "Grace period must be positive")
+      .createWithDefaultString("5s")
+
+  val ARMADA_ALLOCATION_BATCH_SIZE: ConfigEntry[Int] =
+    ConfigBuilder("spark.armada.allocation.batchSize")
+      .doc("Maximum number of executors to allocate in a single batch.")
+      .intConf
+      .checkValue(_ > 0, "Batch size must be positive")
+      .createWithDefault(10)
+
+  val ARMADA_MAX_PENDING_JOBS: ConfigEntry[Int] =
+    ConfigBuilder("spark.armada.allocation.maxPendingJobs")
+      .doc("Maximum number of pending executor jobs allowed.")
+      .intConf
+      .checkValue(_ > 0, "Max pending jobs must be positive")
+      .createWithDefault(100)
+
+  val ARMADA_ALLOCATION_CHECK_INTERVAL: ConfigEntry[Long] =
+    ConfigBuilder("spark.armada.allocation.checkInterval")
+      .doc("Interval for checking executor allocation needs.")
+      .timeConf(TimeUnit.MILLISECONDS)
+      .checkValue(_ > 0, "Check interval must be positive")
+      .createWithDefaultString("10s")
+
+  val ARMADA_EXECUTOR_IMAGE: OptionalConfigEntry[String] =
+    ConfigBuilder("spark.armada.executor.image")
+      .doc("Container image for executor pods. If not set, spark.armada.container.image will be used.")
+      .stringConf
+      .createOptional
+
+  val ARMADA_IMAGE_PULL_POLICY: ConfigEntry[String] =
+    ConfigBuilder("spark.armada.imagePullPolicy")
+      .doc("Image pull policy for containers (Always, IfNotPresent, Never).")
+      .stringConf
+      .checkValue(
+        policy => Set("Always", "IfNotPresent", "Never").contains(policy),
+        "Must be one of: Always, IfNotPresent, Never"
+      )
+      .createWithDefault("IfNotPresent")
+
+  val ARMADA_SERVICE_ACCOUNT: OptionalConfigEntry[String] =
+    ConfigBuilder("spark.armada.serviceAccount")
+      .doc("Kubernetes service account for executor pods.")
+      .stringConf
+      .createOptional
+
   def commaSeparatedLabelsToMap(labelList: String): Map[String, String] = {
     parseCommaSeparatedK8sValue(labelList, K8sValidator.Label).map(_.get).toMap
   }

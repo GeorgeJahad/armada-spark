@@ -97,7 +97,7 @@ private[spark] class ArmadaEventWatcher(
 
         if (running) {
           logWarning("Event stream ended, reconnecting...")
-          Thread.sleep(5000)
+          Thread.sleep(1000)
         }
       } catch {
         case _: InterruptedException =>

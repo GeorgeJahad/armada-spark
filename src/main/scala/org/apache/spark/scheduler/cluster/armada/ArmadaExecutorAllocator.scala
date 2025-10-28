@@ -58,10 +58,6 @@ private[spark] class ArmadaExecutorAllocator(
   private val batchSize = conf.get(ARMADA_ALLOCATION_BATCH_SIZE)
   private val maxPendingJobs = conf.get(ARMADA_MAX_PENDING_JOBS)
   private val checkInterval = conf.get(ARMADA_ALLOCATION_CHECK_INTERVAL)
-  private val executorImage = conf.get(ARMADA_EXECUTOR_IMAGE)
-  private val imagePullPolicy = conf.get(ARMADA_IMAGE_PULL_POLICY)
-  private val serviceAccount = conf.get(ARMADA_SERVICE_ACCOUNT)
-
   // State tracking
   private val totalExpectedExecutors = new ConcurrentHashMap[Int, Int]()
   private val rpIdToResourceProfile = new mutable.HashMap[Int, ResourceProfile]()

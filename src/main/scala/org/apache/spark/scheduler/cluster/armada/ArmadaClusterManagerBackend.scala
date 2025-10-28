@@ -42,11 +42,6 @@ import org.apache.spark.util.{Clock, SystemClock, ThreadUtils, Utils}
  * Spark scheduler backend implementation for Armada.
  *
  * This backend manages executor lifecycle by submitting jobs to Armada queues.
- * Key differences from Kubernetes backend:
- * - Jobs submitted to Armada queue (not direct Kubernetes API)
- * - Event-driven job lifecycle via Armada event stream
- * - Queue-based priority and scheduling
- * - Gang scheduling support for multiple executors
  */
 private[spark] class ArmadaClusterManagerBackend(
     scheduler: TaskSchedulerImpl,
@@ -345,7 +340,7 @@ private[spark] class ArmadaClusterManagerBackend(
     }
 
     logInfo(s"Armada preempting executor $executorId (job $jobId)")
-
+    // handle decom
   }
 
 
@@ -366,7 +361,7 @@ private[spark] class ArmadaClusterManagerBackend(
     private val execIdRequests = new mutable.HashMap[RpcAddress, String]()
 
     /**
-     * Handle dynamic executor ID generation for Armada executors.
+     * Handle dynamic executor ID generation message from executors.
      */
     private def generateExecID(context: RpcCallContext): PartialFunction[Any, Unit] = {
       case GenerateExecID(jobId) =>

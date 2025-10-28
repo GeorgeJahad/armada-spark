@@ -257,23 +257,15 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     )
   }
 
-  private[submit] def submitArmadaJob(
+  private[submit] def submitDriverJob(
       armadaClient: ArmadaClient,
       clientArguments: ClientArguments,
       armadaJobConfig: ArmadaJobConfig,
       conf: SparkConf
-  ): (String, Seq[String]) = {
-
+  ): String = {
     val primaryResource = extractPrimaryResource(clientArguments.mainAppResource)
-    val executorCount   = SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
-
-    if (executorCount <= 0) {
-      throw new IllegalArgumentException(
-        s"Executor count must be greater than 0, but got: $executorCount"
-      )
-    }
-
     val confSeq         = buildSparkConfArgs(conf)
+    val executorCount   = SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
     val configGenerator = new ConfigGenerator("armada-spark-config", conf)
 
     val (templateAnnotations, templateLabels) = extractTemplateMetadata(armadaJobConfig.jobTemplate)
@@ -311,8 +303,57 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       confSeq,
       conf
     )
-    val driverJobId =
-      submitDriver(armadaClient, armadaJobConfig.queue, armadaJobConfig.jobSetId, driver)
+    submitDriver(armadaClient, armadaJobConfig.queue, armadaJobConfig.jobSetId, driver)
+  }
+
+  private[submit] def submitExecutorJobs(
+      armadaClient: ArmadaClient,
+      clientArguments: ClientArguments,
+      armadaJobConfig: ArmadaJobConfig,
+      conf: SparkConf,
+      driverJobId: String
+  ): Seq[String] = {
+    val executorCount = SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
+    if (executorCount <= 0) {
+      throw new IllegalArgumentException(
+        s"Executor count must be greater than 0, but got: $executorCount"
+      )
+    }
+
+    val confSeq         = buildSparkConfArgs(conf)
+    val configGenerator = new ConfigGenerator("armada-spark-config", conf)
+
+    val (templateAnnotations, templateLabels) = extractTemplateMetadata(armadaJobConfig.jobTemplate)
+
+    // Build driver job item again for feature steps that require it when constructing executor pods
+    val driverRuntimeAnnotations = buildAnnotations(
+      configGenerator,
+      templateAnnotations,
+      armadaJobConfig.cliConfig.nodeUniformityLabel,
+      executorCount
+    )
+    val driverRuntimeLabels = buildLabels(
+      armadaJobConfig.cliConfig.podLabels,
+      templateLabels,
+      armadaJobConfig.cliConfig.driverLabels
+    )
+    val driverResolvedConfig = resolveJobConfig(
+      armadaJobConfig.cliConfig,
+      armadaJobConfig.driverJobItemTemplate,
+      driverRuntimeAnnotations,
+      driverRuntimeLabels,
+      conf
+    )
+    val primaryResource = extractPrimaryResource(clientArguments.mainAppResource)
+    val driverJobItem = createDriverJob(
+      armadaJobConfig,
+      driverResolvedConfig,
+      configGenerator,
+      clientArguments,
+      primaryResource,
+      confSeq,
+      conf
+    )
 
     val executorLabels = buildLabels(
       armadaJobConfig.cliConfig.podLabels,
@@ -320,7 +361,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       armadaJobConfig.cliConfig.executorLabels
     )
 
-    val executorAnnotations = buildAnnotations(
+    val executorRuntimeAnnotations = buildAnnotations(
       configGenerator,
       templateAnnotations,
       armadaJobConfig.cliConfig.nodeUniformityLabel,
@@ -331,7 +372,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     val executorResolvedConfig = resolveJobConfig(
       armadaJobConfig.cliConfig,
       armadaJobConfig.executorJobItemTemplate,
-      runtimeAnnotations,
+      executorRuntimeAnnotations,
       executorLabels,
       conf
     )
@@ -344,15 +385,30 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       driverHostname,
       executorCount,
       conf,
-      driver
+      driverJobItem
     )
-    val executorJobIds = submitExecutors(
+    submitExecutors(
       armadaClient,
       armadaJobConfig.queue,
       armadaJobConfig.jobSetId,
       executors
     )
+  }
 
+  private[submit] def submitArmadaJob(
+      armadaClient: ArmadaClient,
+      clientArguments: ClientArguments,
+      armadaJobConfig: ArmadaJobConfig,
+      conf: SparkConf
+  ): (String, Seq[String]) = {
+    val executorCount = SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
+    if (executorCount <= 0) {
+      throw new IllegalArgumentException(
+        s"Executor count must be greater than 0, but got: $executorCount"
+      )
+    }
+    val driverJobId    = submitDriverJob(armadaClient, clientArguments, armadaJobConfig, conf)
+    val executorJobIds = submitExecutorJobs(armadaClient, clientArguments, armadaJobConfig, conf, driverJobId)
     (driverJobId, executorJobIds)
   }
 

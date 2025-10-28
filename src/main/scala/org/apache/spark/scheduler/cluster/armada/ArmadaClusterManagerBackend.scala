@@ -93,8 +93,6 @@ private[spark] class ArmadaClusterManagerBackend(
   /** Executor allocation manager */
   private var executorAllocator: Option[ArmadaExecutorAllocator] = None
 
-  /** Decommissioning manager */
-  // private var decommissionManager: Option[ArmadaDecommissionManager] = None
 
   override def applicationId(): String = {
     conf.getAppId
@@ -157,19 +155,6 @@ private[spark] class ArmadaClusterManagerBackend(
             allocator.start()
           }
 
-          // Initialize decommission manager if enabled
-          // if (conf.get(ARMADA_DECOMMISSION_ENABLE)) {
-          //   val decomMgr = new ArmadaDecommissionManager(
-          //     conf,
-          //     client,
-          //     q,
-          //     jsId,
-          //     executorToJobId,
-          //     this)
-          //   decommissionManager = Some(decomMgr)
-          //   decomMgr.start()
-          // }
-
           // Submit initial executors if allocator is available
           executorAllocator.foreach { allocator =>
             val initExecs = Map(defaultProfile -> initialExecutors)
@@ -189,10 +174,6 @@ private[spark] class ArmadaClusterManagerBackend(
   override def stop(): Unit = {
     logInfo("Stopping Armada cluster scheduler backend")
 
-    // Stop decommission manager
-    // Utils.tryLogNonFatalError {
-    //   decommissionManager.foreach(_.stop())
-    // }
 
     // Call parent stop
     Utils.tryLogNonFatalError {
@@ -238,7 +219,6 @@ private[spark] class ArmadaClusterManagerBackend(
     eventWatcher = None
     armadaClient = None
     executorAllocator = None
-    // decommissionManager = None
   }
 
   // ========================================================================
@@ -311,31 +291,6 @@ private[spark] class ArmadaClusterManagerBackend(
   }
 
   // ========================================================================
-  // DECOMMISSIONING SUPPORT
-  // ========================================================================
-
-  // override def decommissionExecutors(
-  //     executorsAndDecomInfo: Array[(String, ExecutorDecommissionInfo)],
-  //     adjustTargetNumExecutors: Boolean,
-  //     triggeredByExecutor: Boolean): Seq[String] = {
-  //
-  //   val executorIds = executorsAndDecomInfo.map(_._1)
-  //
-  //   logInfo(s"Decommissioning ${executorIds.length} executors: ${executorIds.mkString(", ")}")
-  //
-  //   // Register with decommission manager for tracking
-  //   if (conf.get(ARMADA_DECOMMISSION_ENABLE)) {
-  //     decommissionManager.foreach(_.startDecommissioning(executorsAndDecomInfo))
-  //   }
-  //
-  //   // Call parent to initiate Spark-level decommissioning
-  //   super.decommissionExecutors(
-  //     executorsAndDecomInfo,
-  //     adjustTargetNumExecutors,
-  //     triggeredByExecutor)
-  // }
-
-  // ========================================================================
   // ARMADA-SPECIFIC EVENT HANDLERS
   // ========================================================================
 
@@ -391,77 +346,8 @@ private[spark] class ArmadaClusterManagerBackend(
 
     logInfo(s"Armada preempting executor $executorId (job $jobId)")
 
-    // if (conf.get(ARMADA_DECOMMISSION_ENABLE)) {
-    //   val decommissionInfo = ExecutorDecommissionInfo(
-    //     message = s"Armada preempting (job $jobId)",
-    //     workerHost = None,
-    //     isHostDecommissioned = false)
-    //
-    //   decommissionExecutors(
-    //     Array((executorId, decommissionInfo)),
-    //     adjustTargetNumExecutors = false,
-    //     triggeredByExecutor = true)
-    // }
   }
 
-  /**
-   * Called by decommission manager when executor finishes decommissioning.
-   */
-  // private[armada] def handleExecutorDecommissionComplete(
-  //     executorId: String,
-  //     successful: Boolean): Unit = {
-  //
-  //   if (successful) {
-  //     logInfo(s"Executor $executorId completed decommissioning successfully")
-  //   } else {
-  //     logWarning(s"Executor $executorId decommissioning timed out")
-  //   }
-  //
-  //   removeExecutor(executorId, ExecutorDecommission(None))
-  //
-  //   // Cancel the Armada job
-  //   val jobId = executorToJobId.get(executorId)
-  //   if (jobId != null) {
-  //     Utils.tryLogNonFatalError {
-  //       val reason = if (successful) {
-  //         "Decommissioned successfully"
-  //       } else {
-  //         "Decommissioning timeout"
-  //       }
-  //
-  //       (armadaClient, queue, jobSetId) match {
-  //         case (Some(client), Some(q), Some(jsId)) =>
-  //           val cancelRequest = JobCancelRequest(
-  //             jobSetId = jsId,
-  //             jobId = jobId,
-  //             jobIds = Seq(jobId),
-  //             queue = q,
-  //             reason = Some(reason))
-  //
-  //           client.cancelJobs(cancelRequest)
-  //         case _ =>
-  //           logWarning("Cannot cancel job: Armada client not initialized")
-  //       }
-  //     }
-  //   }
-  // }
-
-  /**
-   * Check if decommissioning executors have completed all tasks.
-   * Called periodically and after task completion.
-   */
-  // private def checkDecommissioningExecutorTasks(): Unit = {
-  //   if (!conf.get(ARMADA_DECOMMISSION_ENABLE)) return
-  //
-  //   decommissionManager.foreach { mgr =>
-  //     mgr.getDecommissioningStatus().foreach { executorId =>
-  //       // Check if executor has no running tasks
-  //       if (!scheduler.isExecutorBusy(executorId)) {
-  //         mgr.notifyTasksComplete(executorId)
-  //       }
-  //     }
-  //   }
-  // }
 
   // ========================================================================
   // CUSTOM DRIVER ENDPOINT
@@ -497,39 +383,8 @@ private[spark] class ArmadaClusterManagerBackend(
         logDebug(s"Assigned executor ID $newId to Armada job $jobId")
     }
 
-    /**
-     * Handle executor-initiated decommissioning requests.
-     */
-    // private def handleExecutorDecommissionRequest: PartialFunction[Any, Unit] = {
-    //   case ExecutorDecommissionRequest(executorId, message) =>
-    //     logInfo(s"Executor $executorId requested decommissioning: $message")
-    //
-    //     val decommissionInfo = ExecutorDecommissionInfo(
-    //       message = message,
-    //       workerHost = None,
-    //       isHostDecommissioned = false)
-    //
-    //     decommissionExecutors(
-    //       Array((executorId, decommissionInfo)),
-    //       adjustTargetNumExecutors = false,
-    //       triggeredByExecutor = true)
-    // }
-
-    // override def receive: PartialFunction[Any, Unit] = {
-    //   case msg @ StatusUpdate(executorId, taskId, state, data, taskCpus, resources) =>
-    //     super.receive(msg)
-    //     // After task completion, check if decommissioning executors have finished all tasks
-    //     if (TaskState.isFinished(state)) {
-    //       checkDecommissioningExecutorTasks()
-    //     }
-    //
-    //   case msg =>
-    //     super.receive(msg)
-    // }
-
     override def receiveAndReply(context: RpcCallContext): PartialFunction[Any, Unit] = {
       generateExecID(context)
-        // .orElse(handleExecutorDecommissionRequest)
         .orElse(super.receiveAndReply(context))
     }
 
@@ -541,9 +396,6 @@ private[spark] class ArmadaClusterManagerBackend(
             case Some(_) =>
               // Expected disconnection during decommissioning
               logDebug(s"Executor $id disconnected during decommissioning")
-              // if (conf.get(ARMADA_DECOMMISSION_ENABLE)) {
-              //   decommissionManager.foreach(_.completeDecommissioning(id))
-              // }
               removeExecutor(id, ExecutorDecommission(None))
 
             case None =>

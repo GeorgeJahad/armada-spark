@@ -102,7 +102,9 @@ private[spark] class ArmadaClusterManagerBackend(
 
     // Initialize Armada event watcher if queue and jobSetId are provided
     val queueOpt    = conf.get(ARMADA_JOB_QUEUE)
-    val jobSetIdOpt = conf.get(ARMADA_JOB_SET_ID)
+    val jobSetIdOpt = sys.env.get("ARMADA_JOB_SET_ID")
+
+
 
     (queueOpt, jobSetIdOpt) match {
       case (Some(q), Some(jsId)) =>

@@ -1144,12 +1144,19 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
         .withApiVersion("v1")
         .withFieldPath("metadata.labels['armada_job_id']")
     )
+    val armadaJobSetIdSource = EnvVarSource().withFieldRef(
+      ObjectFieldSelector()
+        .withApiVersion("v1")
+        .withFieldPath("metadata.annotations['armada_jobset_id']")
+    )
+
     val envVars = Seq(
       EnvVar().withName("SPARK_DRIVER_BIND_ADDRESS").withValueFrom(source),
       EnvVar()
         .withName(ConfigGenerator.ENV_SPARK_CONF_DIR)
         .withValue(ConfigGenerator.REMOTE_CONF_DIR_NAME),
-      EnvVar().withName("ARMADA_JOB_ID").withValueFrom(armadaJobIdSource)
+      EnvVar().withName("ARMADA_JOB_ID").withValueFrom(armadaJobIdSource),
+      EnvVar().withName("ARMADA_JOB_SET_ID").withValueFrom(armadaJobSetIdSource)
     )
 
     val templateResources = extractResourcesFromTemplate(armadaJobConfig.driverJobItemTemplate)

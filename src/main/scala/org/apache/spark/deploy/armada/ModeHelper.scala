@@ -13,7 +13,7 @@ class StaticCluster(conf: SparkConf) extends ModeHelper {
     SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
   }
   override def getGangCardinality: Int = {
-    0
+    getExecutorCount + 1
   }
 }
 
@@ -22,7 +22,7 @@ class StaticClient(conf: SparkConf) extends ModeHelper {
     SchedulerBackendUtils.getInitialTargetExecutorNumber(conf)
   }
   override def getGangCardinality: Int = {
-    0
+    getExecutorCount
   }
 }
 
@@ -32,7 +32,7 @@ class DynamicCluster(conf: SparkConf) extends ModeHelper {
       SchedulerBackendUtils.getInitialTargetExecutorNumber(conf))
   }
   override def getGangCardinality: Int = {
-    0
+    getExecutorCount + 1
   }
 }
 
@@ -42,7 +42,7 @@ class DynamicClient(conf: SparkConf) extends ModeHelper {
       SchedulerBackendUtils.getInitialTargetExecutorNumber(conf))
   }
   override def getGangCardinality: Int = {
-    0
+    getExecutorCount
   }
 }
 

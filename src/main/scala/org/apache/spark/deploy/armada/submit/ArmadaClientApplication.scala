@@ -102,6 +102,8 @@ private[spark] object ArmadaClientApplication {
     s"armada-spark-app-id-${UUID.randomUUID().toString.replaceAll("-", "")}"
   private val DEFAULT_RUN_AS_USER = 185
 
+  val gangId = Some(java.util.UUID.randomUUID.toString)
+
 }
 
 /** Main class and entry point of application submission in KUBERNETES mode.
@@ -1703,16 +1705,15 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     // Gang scheduling annotations are temporarily disabled/commented out.
     // Previously, we added GangSchedulingAnnotations here using nodeUniformityLabel and executorCount.
     // Now we only merge the generator and template annotations.
-    configGenerator.getAnnotations ++ templateAnnotations
-    // ++ nodeUniformityLabel
-    //   .map(label =>
-    //     GangSchedulingAnnotations(
-    //       gangId,
-    //       1 + executorCount,
-    //       label
-    //     )
-    //   )
-    //   .getOrElse(Map.empty)
+    configGenerator.getAnnotations ++ templateAnnotations ++ nodeUniformityLabel
+      .map(label =>
+        GangSchedulingAnnotations(
+          ArmadaClientApplication.gangId,
+          1 + executorCount,
+          label
+        )
+      )
+      .getOrElse(Map.empty)
   }
 
   private def buildLabels(

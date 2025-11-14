@@ -247,8 +247,6 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       configGenerator,
       templateAnnotations,
       armadaJobConfig.cliConfig.nodeUniformityLabel,
-      executorCount,
-      maybeGangId,
       conf
     )
     val runtimeLabels = buildLabels(
@@ -336,8 +334,6 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       driverResult.configGenerator,
       driverResult.templateAnnotations,
       armadaJobConfig.cliConfig.nodeUniformityLabel,
-      executorCount,
-      None,
       conf
     )
 
@@ -1597,7 +1593,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
         .map(_.split(" ").toSeq)
         .getOrElse(
           Seq()
-        ) :+ "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/jdk.internal.ref=ALL-UNNAMED --add-opens=java.base/sun.nio.cs=ALL-UNNAMED --add-opens=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/sun.util.calendar=ALL-UNNAMED --add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED"
+        ) ++ "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/jdk.internal.ref=ALL-UNNAMED --add-opens=java.base/sun.nio.cs=ALL-UNNAMED --add-opens=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/sun.util.calendar=ALL-UNNAMED --add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED".split(" ").toSeq
 
     javaOpts.zipWithIndex.map { case (value: String, index) =>
       EnvVar().withName("SPARK_JAVA_OPT_" + index).withValue(value)
@@ -1699,13 +1695,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       configGenerator: ConfigGenerator,
       templateAnnotations: Map[String, String],
       nodeUniformityLabel: Option[String],
-      executorCount: Int,
-      gangId: Option[String],
       conf: SparkConf
   ): Map[String, String] = {
-    // Gang scheduling annotations are temporarily disabled/commented out.
-    // Previously, we added GangSchedulingAnnotations here using nodeUniformityLabel and executorCount.
-    // Now we only merge the generator and template annotations.
     val modeHelper = ModeHelper(conf)
     configGenerator.getAnnotations ++ templateAnnotations ++ nodeUniformityLabel
       .map(label =>

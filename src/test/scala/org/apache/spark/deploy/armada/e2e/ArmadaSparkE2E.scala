@@ -138,21 +138,6 @@ class ArmadaSparkE2E
   implicit val orch: TestOrchestrator = orchestrator
 
 
-  test("SparkPi job with node selectors", E2ETest) {
-    E2ETestBuilder("spark-pi-node-selectors")
-      .withBaseConfig(baseConfig)
-      .withPodLabels(Map("test-type" -> "node-selector"))
-      .withNodeSelectors(Map("kubernetes.io/hostname" -> "armada-worker"))
-      .assertDriverExists()
-      .assertExecutorCount(2)
-      .assertPodLabels(Map("test-type" -> "node-selector"))
-      .assertNodeSelectors(Map("kubernetes.io/hostname" -> "armada-worker"))
-      .run()
-  }
-
-
-
-
 
   test("SparkPi job with driver ingress using cli", E2ETest) {
     E2ETestBuilder("spark-pi-ingress")
@@ -176,6 +161,21 @@ class ArmadaSparkE2E
       )
       .run()
   }
+
+
+
+  test("SparkPi job with node selectors", E2ETest) {
+    E2ETestBuilder("spark-pi-node-selectors")
+      .withBaseConfig(baseConfig)
+      .withPodLabels(Map("test-type" -> "node-selector"))
+      .withNodeSelectors(Map("kubernetes.io/hostname" -> "armada-worker"))
+      .assertDriverExists()
+      .assertExecutorCount(2)
+      .assertPodLabels(Map("test-type" -> "node-selector"))
+      .assertNodeSelectors(Map("kubernetes.io/hostname" -> "armada-worker"))
+      .run()
+  }
+
 
 
 

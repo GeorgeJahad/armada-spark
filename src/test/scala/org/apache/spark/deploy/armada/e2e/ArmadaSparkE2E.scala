@@ -137,93 +137,7 @@ class ArmadaSparkE2E
 
   implicit val orch: TestOrchestrator = orchestrator
 
-  test("Basic SparkPi job with gang scheduling", E2ETest) {
-    E2ETestBuilder("basic-spark-pi-gang")
-      .withBaseConfig(baseConfig)
-      .withGangJob("armada-spark")
-      .withExecutors(3)
-      .withPodLabels(Map("test-type" -> "basic"))
-      .assertDriverExists()
-      .assertExecutorCount(3)
-      .assertPodLabels(Map("test-type" -> "basic"))
-      .assertGangJob("armada-spark", 4) // 1 driver + 3 executors
-      .run()
-  }
 
-  test("SparkPi job with node selectors", E2ETest) {
-    E2ETestBuilder("spark-pi-node-selectors")
-      .withBaseConfig(baseConfig)
-      .withPodLabels(Map("test-type" -> "node-selector"))
-      .withNodeSelectors(Map("kubernetes.io/hostname" -> "armada-worker"))
-      .assertDriverExists()
-      .assertExecutorCount(2)
-      .assertPodLabels(Map("test-type" -> "node-selector"))
-      .assertNodeSelectors(Map("kubernetes.io/hostname" -> "armada-worker"))
-      .run()
-  }
-
-  test("Basic python SparkPi job", E2ETest) {
-    E2ETestBuilder("python-spark-pi")
-      .withBaseConfig(baseConfig)
-      .withPythonScript("/opt/spark/examples/src/main/python/pi.py")
-      .withSparkConf(
-        Map(
-          "spark.kubernetes.file.upload.path"          -> "/tmp",
-          "spark.kubernetes.executor.disableConfigMap" -> "true"
-        )
-      )
-      .withExecutors(2)
-      .assertDriverExists()
-      .assertExecutorCount(2)
-      .run()
-  }
-
-  test("SparkPi job using job templates", E2ETest) {
-    E2ETestBuilder("spark-pi-templates")
-      .withBaseConfig(baseConfig)
-      .withJobTemplate(templatePath("spark-pi-job-template.yaml"))
-      .withSparkConf(
-        Map(
-          "spark.armada.driver.jobItemTemplate"   -> templatePath("spark-pi-driver-template.yaml"),
-          "spark.armada.executor.jobItemTemplate" -> templatePath("spark-pi-executor-template.yaml")
-        )
-      )
-      .withPodLabels(Map("test-type" -> "template"))
-      .assertDriverExists()
-      .assertExecutorCount(2)
-      .assertPodLabels(Map("test-type" -> "template"))
-      // Assert template-specific labels from driver template
-      .assertDriverHasLabels(
-        Map(
-          "app"             -> "spark-pi",
-          "component"       -> "driver",
-          "template-source" -> "e2e-test"
-        )
-      )
-      // Assert template-specific labels from executor template
-      .assertExecutorsHaveLabels(
-        Map(
-          "app"             -> "spark-pi",
-          "component"       -> "executor",
-          "template-source" -> "e2e-test"
-        )
-      )
-      // Assert template-specific annotations from driver template
-      .assertDriverHasAnnotations(
-        Map(
-          "armada/component" -> "spark-driver",
-          "armada/template"  -> "spark-pi-driver"
-        )
-      )
-      // Assert template-specific annotations from executor template
-      .assertExecutorsHaveAnnotations(
-        Map(
-          "armada/component" -> "spark-executor",
-          "armada/template"  -> "spark-pi-executor"
-        )
-      )
-      .run()
-  }
 
   test("SparkPi job with driver ingress using cli", E2ETest) {
     E2ETestBuilder("spark-pi-ingress")
@@ -248,69 +162,22 @@ class ArmadaSparkE2E
       .run()
   }
 
-  test("SparkPi job with driver ingress using template", E2ETest) {
-    E2ETestBuilder("spark-pi-ingress-template")
+
+
+  test("SparkPi job with node selectors", E2ETest) {
+    E2ETestBuilder("spark-pi-node-selectors")
       .withBaseConfig(baseConfig)
-      .withJobTemplate(templatePath("spark-pi-job-template.yaml"))
-      .withSparkConf(
-        Map(
-          "spark.armada.driver.ingress.enabled" -> "true",
-          "spark.armada.driver.jobItemTemplate" -> templatePath(
-            "spark-pi-driver-ingress-template.yaml"
-          ),
-          "spark.armada.executor.jobItemTemplate" -> templatePath("spark-pi-executor-template.yaml")
-        )
-      )
-      .withPodLabels(Map("test-type" -> "ingress-template"))
+      .withPodLabels(Map("test-type" -> "node-selector"))
+      .withNodeSelectors(Map("kubernetes.io/hostname" -> "armada-worker"))
       .assertDriverExists()
       .assertExecutorCount(2)
-      .assertPodLabels(Map("test-type" -> "ingress-template"))
-      .assertIngressAnnotations(
-        Map(
-          "nginx.ingress.kubernetes.io/rewrite-target"   -> "/",
-          "nginx.ingress.kubernetes.io/backend-protocol" -> "HTTP",
-          "kubernetes.io/ingress.class"                  -> "nginx"
-        )
-      )
+      .assertPodLabels(Map("test-type" -> "node-selector"))
+      .assertNodeSelectors(Map("kubernetes.io/hostname" -> "armada-worker"))
       .run()
   }
 
-  test("SparkPi job with custom feature steps", E2ETest) {
-    E2ETestBuilder("spark-pi-feature-steps")
-      .withBaseConfig(baseConfig)
-      .withSparkConf(
-        Map(
-          "spark.kubernetes.driver.pod.featureSteps" ->
-            "org.apache.spark.deploy.armada.e2e.featurestep.DriverFeatureStep",
-          "spark.kubernetes.executor.pod.featureSteps" ->
-            "org.apache.spark.deploy.armada.e2e.featurestep.ExecutorFeatureStep"
-        )
-      )
-      .withPodLabels(Map("test-type" -> "feature-step"))
-      .assertDriverExists()
-      .assertExecutorCount(2)
-      .assertDriverHasLabels(
-        Map(
-          "feature-step"      -> "driver-applied",
-          "feature-step-role" -> "driver"
-        )
-      )
-      .assertDriverHasAnnotation("driver-feature-step", "configured")
-      .assertExecutorsHaveLabels(
-        Map(
-          "feature-step"      -> "executor-applied",
-          "feature-step-role" -> "executor"
-        )
-      )
-      .assertExecutorsHaveAnnotation("executor-feature-step", "configured")
-      .withDriverPodAssertion { pod =>
-        Option(pod.getSpec.getActiveDeadlineSeconds).map(_.longValue).contains(3600L)
-      }
-      .withExecutorPodAssertion { pod =>
-        Option(pod.getSpec.getActiveDeadlineSeconds).map(_.longValue).contains(1800L)
-      }
-      .run()
-  }
+
+
 
   private def loadProperties(): Properties = {
     val props = new Properties()

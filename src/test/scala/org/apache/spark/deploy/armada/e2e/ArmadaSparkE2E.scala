@@ -181,33 +181,43 @@ class ArmadaSparkE2E
       .withDeployMode(deployMode)
   }
 
+  /** this is more complete builder for basic SparkPi job tests */
+  private def moreCompleteBaseSparkPiTest(testName: String, deployMode: String, labels: Map[String, String]): E2ETestBuilder = {
+    val test = E2ETestBuilder(testName)
+      .withBaseConfig(baseConfig)
+      .withDeployMode(deployMode)
+      .withPodLabels(labels)
+    if (deployMode == "cluster") {
+      test
+        .assertDriverExists()
+        .assertPodLabels(labels)
+    } else {
+      test
+        .assertExecutorsHaveLabels(labels)
+    }
+  }
+  
   // ========================================================================
   // Gang Scheduling Tests
   // ========================================================================
 
   private def baseSparkPiGangTest(
-      testName: String,
-      deployMode: String,
-      executorCount: Int,
-      labels: Map[String, String]
+      deployMode: String
   ): E2ETestBuilder = {
-    baseSparkPiTest(testName, deployMode)
+    moreCompleteBaseSparkPiTest("basic-spark-pi-gang-" + deployMode, deployMode, Map("test-type" -> "basic"))
       .withGangJob("armada-spark")
-      .withExecutors(executorCount)
-      .withPodLabels(labels)
-      .assertExecutorCount(executorCount)
+      .withExecutors(2)
+      .assertExecutorCount(2)
   }
 
   test("Basic SparkPi job with gang scheduling - staticCluster", E2ETest) {
-    baseSparkPiGangTest("basic-spark-pi-gang", "cluster", 3, Map("test-type" -> "basic"))
-      .assertDriverExists()
-      .assertPodLabels(Map("test-type" -> "basic"))
-      .assertGangJob("armada-spark", 4) // 1 driver + 3 executors
+    baseSparkPiGangTest("cluster")
+      .assertGangJob("armada-spark", 3) // 1 driver + 2 executors
       .run()
   }
 
   test("Basic SparkPi job with gang scheduling - staticClient", E2ETest) {
-    baseSparkPiGangTest("basic-spark-pi-client", "client", 2, Map("test-type" -> "client-mode"))
+    baseSparkPiGangTest("client")
       .assertExecutorGangJob("armada-spark", 2) // Only 2 executors, no driver
       .run()
   }

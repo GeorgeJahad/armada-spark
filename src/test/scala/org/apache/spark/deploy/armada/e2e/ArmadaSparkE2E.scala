@@ -182,7 +182,11 @@ class ArmadaSparkE2E
   }
 
   /** this is more complete builder for basic SparkPi job tests */
-  private def moreCompleteBaseSparkPiTest(testName: String, deployMode: String, labels: Map[String, String]): E2ETestBuilder = {
+  private def moreCompleteBaseSparkPiTest(
+      testName: String,
+      deployMode: String,
+      labels: Map[String, String]
+  ): E2ETestBuilder = {
     val test = E2ETestBuilder(testName)
       .withBaseConfig(baseConfig)
       .withDeployMode(deployMode)
@@ -196,7 +200,7 @@ class ArmadaSparkE2E
         .assertExecutorsHaveLabels(labels)
     }
   }
-  
+
   // ========================================================================
   // Gang Scheduling Tests
   // ========================================================================
@@ -204,7 +208,11 @@ class ArmadaSparkE2E
   private def baseSparkPiGangTest(
       deployMode: String
   ): E2ETestBuilder = {
-    moreCompleteBaseSparkPiTest("basic-spark-pi-gang-" + deployMode, deployMode, Map("test-type" -> "basic"))
+    moreCompleteBaseSparkPiTest(
+      "basic-spark-pi-gang-" + deployMode,
+      deployMode,
+      Map("test-type" -> "basic")
+    )
       .withGangJob("armada-spark")
       .withExecutors(2)
       .assertExecutorCount(2)

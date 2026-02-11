@@ -11,11 +11,17 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR"
 
-# Skip build verification if no build-relevant files changed
-CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null; git diff --name-only --cached HEAD 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)
-BUILD_FILES=$(echo "$CHANGED_FILES" | grep -E '\.(scala|java)$|pom\.xml' | head -1)
+# Check transcript for files Claude actually edited this session
+TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // ""')
+EDITED_FILES=""
+if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
+  EDITED_FILES=$(grep -oP '"file_path"\s*:\s*"[^"]+"' "$TRANSCRIPT_PATH" 2>/dev/null \
+    | sed 's/"file_path"\s*:\s*"//;s/"$//' | sort -u)
+fi
+
+BUILD_FILES=$(echo "$EDITED_FILES" | grep -E '\.(scala|java)$|pom\.xml' | head -1)
 if [ -z "$BUILD_FILES" ]; then
-  echo '{"systemMessage": "Skipped build verification (no code changes detected)"}'
+  echo '{"systemMessage": "Skipped build verification (no code edits this session)"}'
   exit 0
 fi
 

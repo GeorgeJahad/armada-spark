@@ -25,6 +25,7 @@ ARG include_python=false
 
 COPY target/armada-cluster-manager_${scala_binary_version}-*-all.jar /opt/spark/jars/
 COPY extraFiles /opt/spark/extraFiles
+COPY extraFiles/entrypoint.sh /opt/entrypoint.sh
 COPY extraJars/* /opt/spark/jars
 COPY docker/jupyter-entrypoint.sh /opt/spark/bin/jupyter-entrypoint.sh
 
@@ -59,6 +60,7 @@ RUN if [ "$include_python" = "true" ]; then \
         chown -R 185:185 /home/spark/.local && \
         chown -R 185:185 /home/spark/.jupyter; \
     fi && \
+    chmod +x /opt/entrypoint.sh &&\ 
     chmod +x /opt/spark/bin/jupyter-entrypoint.sh
 
 ARG spark_uid=185

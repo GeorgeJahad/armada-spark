@@ -63,7 +63,7 @@ import org.apache.spark.deploy.armada.Config.{
 import org.apache.spark.deploy.armada.DeploymentModeHelper
 import io.armadaproject.armada.ArmadaClient
 import io.fabric8.kubernetes.api.model
-import io.fabric8.kubernetes.api.model.PodBuilder
+import io.fabric8.kubernetes.api.model.{HasMetadata, PodBuilder}
 import k8s.io.api.core.v1.generated._
 import k8s.io.apimachinery.pkg.api.resource.generated.Quantity
 import org.apache.spark.deploy.SparkApplication
@@ -89,6 +89,10 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
+
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import io.fabric8.kubernetes.client.utils.{Serialization => FabricSerialization}
 
 /** Encapsulates arguments to the submission client.
   *
@@ -177,6 +181,51 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     // scalastyle:on println
   }
 
+  private def logJobItemYaml(label: String, item: api.submit.JobSubmitRequestItem): Unit = {
+    try {
+      val yamlMapper = new ObjectMapper(new YAMLFactory())
+      val jsonMapper = new ObjectMapper()
+
+      // Build a map of the top-level job item fields
+      val jobMap = new java.util.LinkedHashMap[String, Any]()
+      jobMap.put("priority", item.priority)
+      jobMap.put("namespace", item.namespace)
+      if (item.labels.nonEmpty) {
+        jobMap.put("labels", item.labels.asJava)
+      }
+      if (item.annotations.nonEmpty) {
+        jobMap.put("annotations", item.annotations.asJava)
+      }
+
+      if (item.services.nonEmpty) {
+        val servicesList = item.services.map { svc =>
+          val svcMap = new java.util.LinkedHashMap[String, Any]()
+          svcMap.put("type", svc.`type`.toString)
+          if (svc.name.nonEmpty) svcMap.put("name", svc.name)
+          if (svc.ports.nonEmpty) svcMap.put("ports", svc.ports.map(Integer.valueOf).asJava)
+          svcMap
+        }
+        jobMap.put("services", servicesList.asJava)
+      }
+
+      // Convert protobuf PodSpec to Fabric8 PodSpec, then to a JSON tree for YAML output
+      item.podSpec.foreach { protobufPodSpec =>
+        val fabric8Pod = PodSpecConverter.protobufPodSpecToFabric8Pod(protobufPodSpec)
+        val podJson    = FabricSerialization.asJson(fabric8Pod)
+        val podNode    = jsonMapper.readTree(podJson)
+        jobMap.put("pod", podNode)
+      }
+
+      val yaml = yamlMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobMap)
+      log(s"--- gbj Armada $label job YAML ---")
+      log(yaml)
+      log(s"--- End $label job YAML ---")
+    } catch {
+      case e: Exception =>
+        log(s"Failed to serialize $label job to YAML: ${e.getMessage}")
+    }
+  }
+
   override def start(args: Array[String], conf: SparkConf): Unit = {
     val parsedArguments = ClientArguments.fromCommandLineArgs(args)
     run(parsedArguments, conf)
@@ -262,8 +311,9 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       .getOrElse(getApplicationId(conf))
 
     // Get basic feature steps from Spark's Kubernetes integration
-    val (driverJobItem, driverContainer)     = getDriverFeatureSteps(conf, clientArguments)
-    val (executorJobItem, executorContainer) = getExecutorFeatureSteps(conf)
+    val (driverJobItem, driverContainer) = getDriverFeatureSteps(conf, clientArguments)
+    val (executorJobItem, executorContainer, executorServices) =
+      getExecutorFeatureSteps(conf)
 
     ArmadaJobConfig(
       queue = finalQueue,
@@ -276,7 +326,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       driverFeatureStepJobItem = driverJobItem,
       driverFeatureStepContainer = driverContainer,
       executorFeatureStepJobItem = executorJobItem,
-      executorFeatureStepContainer = executorContainer
+      executorFeatureStepContainer = executorContainer,
+      executorFeatureStepServices = executorServices
     )
   }
 
@@ -795,7 +846,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       driverFeatureStepJobItem: Option[api.submit.JobSubmitRequestItem],
       driverFeatureStepContainer: Option[Container],
       executorFeatureStepJobItem: Option[api.submit.JobSubmitRequestItem],
-      executorFeatureStepContainer: Option[Container]
+      executorFeatureStepContainer: Option[Container],
+      executorFeatureStepServices: Seq[api.submit.ServiceConfig]
   )
 
   private[submit] def createDriverJob(
@@ -854,6 +906,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       jobSetId: String,
       driver: api.submit.JobSubmitRequestItem
   ): String = {
+    logJobItemYaml("driver", driver)
     val driverResponse = armadaClient.submitJobs(queue, jobSetId, Seq(driver))
     val driverJobId    = driverResponse.jobResponseItems.head.jobId
     val error = Some(driverResponse.jobResponseItems.head.error)
@@ -871,6 +924,9 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       jobSetId: String,
       executors: Seq[api.submit.JobSubmitRequestItem]
   ): Seq[String] = {
+    executors.zipWithIndex.foreach { case (executor, idx) =>
+      logJobItemYaml(s"executor-$idx", executor)
+    }
     val executorsResponse = armadaClient.submitJobs(queue, jobSetId, executors)
     executorsResponse.jobResponseItems.map { item =>
       val error = Some(item.error).filter(_.nonEmpty).getOrElse("none")
@@ -1117,14 +1173,15 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     * @param conf
     *   Spark configuration
     * @return
-    *   A tuple of (Some(JobSubmitRequestItem), Some(Container)) with basic feature steps applied.
-    *   JobSubmitRequestItem contains labels, annotations, and PodSpec with init
-    *   containers/sidecars. Container is the main Spark executor container with env vars and volume
-    *   mounts.
+    *   A tuple of (Some(JobSubmitRequestItem), Some(Container), Seq[ServiceConfig]) with basic
+    *   feature steps applied. JobSubmitRequestItem contains labels, annotations, and PodSpec with
+    *   init containers/sidecars. Container is the main Spark executor container with env vars and
+    *   volume mounts. ServiceConfig contains services converted from executor feature step
+    *   Kubernetes resources.
     */
   private[spark] def getExecutorFeatureSteps(
       conf: SparkConf
-  ): (Option[JobSubmitRequestItem], Option[Container]) = {
+  ): (Option[JobSubmitRequestItem], Option[Container], Seq[api.submit.ServiceConfig]) = {
     val appId = getApplicationId(conf)
 
     // Clone conf to prevent feature step builders from mutating the original
@@ -1145,8 +1202,9 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
 
     val jobItem   = fabric8PodToJobItem(executorSpec.pod.pod)
     val container = PodSpecConverter.convertContainer(executorSpec.pod.container)
+    val services  = fabric8ServicesToServiceConfigs(executorSpec.executorKubernetesResources)
 
-    (Some(jobItem), Some(container))
+    (Some(jobItem), Some(container), services)
   }
 
   /** Merges an executor job item template with runtime configuration.
@@ -1282,7 +1340,11 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       annotations = baseJobItem.annotations ++ template
         .map(_.annotations)
         .getOrElse(Map.empty) ++ resolvedConfig.annotations,
-      podSpec = Some(finalPodSpec)
+      podSpec = Some(finalPodSpec),
+      services = template
+        .map(_.services)
+        .filter(_.nonEmpty)
+        .getOrElse(armadaJobConfig.executorFeatureStepServices)
     )
   }
 
@@ -1587,6 +1649,27 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       defaultValue: => T
   ): T = {
     cliValue.orElse(templateValue).getOrElse(defaultValue)
+  }
+
+  /** Converts Fabric8 Kubernetes Service resources to Armada ServiceConfig entries.
+    *
+    * Filters the provided resources for Service instances and maps each to a headless ServiceConfig
+    * with the service's ports and name.
+    */
+  private[submit] def fabric8ServicesToServiceConfigs(
+      resources: Seq[HasMetadata]
+  ): Seq[api.submit.ServiceConfig] = {
+    resources.collect { case svc: io.fabric8.kubernetes.api.model.Service =>
+      val ports = Option(svc.getSpec)
+        .flatMap(s => Option(s.getPorts))
+        .map(_.asScala.toSeq.map(_.getPort.intValue()))
+        .getOrElse(Seq.empty)
+      api.submit.ServiceConfig(
+        `type` = api.submit.ServiceType.Headless,
+        ports = ports,
+        name = Option(svc.getMetadata).flatMap(m => Option(m.getName)).getOrElse("")
+      )
+    }
   }
 
   /** Builds service configuration for the driver pod. Driver port is listed first so executors can

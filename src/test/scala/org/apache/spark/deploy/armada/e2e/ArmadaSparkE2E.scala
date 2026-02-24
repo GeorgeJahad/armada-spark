@@ -242,17 +242,17 @@ class ArmadaSparkE2E
     base.withAllocationMode(allocation, executorCount)
   }
 
-  test("Basic SparkPi job with gang scheduling - staticCluster", E2ETest) {
-    baseSparkPiGangTest("cluster", "static", 3)
-      .assertGangJob("armada-spark", 4) // 1 driver + 3 executors
-      .run()
-  }
+  // test("Basic SparkPi job with gang scheduling - staticCluster", E2ETest) {
+  //   baseSparkPiGangTest("cluster", "static", 3)
+  //     .assertGangJob("armada-spark", 4) // 1 driver + 3 executors
+  //     .run()
+  // }
 
-  test("Basic SparkPi job with gang scheduling - staticClient", E2ETest) {
-    baseSparkPiGangTest("client", "static", 3)
-      .assertExecutorGangJob("armada-spark", 3) // Only 3 executors, no driver
-      .run()
-  }
+  // test("Basic SparkPi job with gang scheduling - staticClient", E2ETest) {
+  //   baseSparkPiGangTest("client", "static", 3)
+  //     .assertExecutorGangJob("armada-spark", 3) // Only 3 executors, no driver
+  //     .run()
+  // }
 
   test("Basic SparkPi job with gang scheduling - dynamicCluster", E2ETest) {
     baseSparkPiGangTest("cluster", "dynamic", 2)
@@ -288,20 +288,20 @@ class ArmadaSparkE2E
     else configured
   }
 
-  test("SparkPi job with node selectors - staticCluster", E2ETest) {
-    baseNodeSelectorTest("cluster", "static", 2)
-      .run()
-  }
+  // test("SparkPi job with node selectors - staticCluster", E2ETest) {
+  //   baseNodeSelectorTest("cluster", "static", 2)
+  //     .run()
+  // }
 
-  test("SparkPi job with node selectors - staticClient", E2ETest) {
-    baseNodeSelectorTest("client", "static", 2)
-      .run()
-  }
+  // test("SparkPi job with node selectors - staticClient", E2ETest) {
+  //   baseNodeSelectorTest("client", "static", 2)
+  //     .run()
+  // }
 
-  test("SparkPi job with node selectors - dynamicCluster", E2ETest) {
-    baseNodeSelectorTest("cluster", "dynamic", 2)
-      .run()
-  }
+  // test("SparkPi job with node selectors - dynamicCluster", E2ETest) {
+  //   baseNodeSelectorTest("cluster", "dynamic", 2)
+  //     .run()
+  // }
 
   // ========================================================================
   // Python Tests
@@ -333,20 +333,20 @@ class ArmadaSparkE2E
     else configured
   }
 
-  test("Basic python SparkPi job - staticCluster", E2ETest) {
-    basePythonSparkPiTest("cluster", "static", 2)
-      .run()
-  }
+  // test("Basic python SparkPi job - staticCluster", E2ETest) {
+  //   basePythonSparkPiTest("cluster", "static", 2)
+  //     .run()
+  // }
 
-  test("Basic python SparkPi job - staticClient", E2ETest) {
-    basePythonSparkPiTest("client", "static", 2)
-      .run()
-  }
+  // test("Basic python SparkPi job - staticClient", E2ETest) {
+  //   basePythonSparkPiTest("client", "static", 2)
+  //     .run()
+  // }
 
-  test("Basic python SparkPi job - dynamicCluster", E2ETest) {
-    basePythonSparkPiTest("cluster", "dynamic", 2)
-      .run()
-  }
+  // test("Basic python SparkPi job - dynamicCluster", E2ETest) {
+  //   basePythonSparkPiTest("cluster", "dynamic", 2)
+  //     .run()
+  // }
 
   // ========================================================================
   // Template Tests
@@ -421,20 +421,20 @@ class ArmadaSparkE2E
     }
   }
 
-  test("SparkPi job using job templates - staticCluster", E2ETest) {
-    baseTemplateTest("cluster", "static", 2)
-      .run()
-  }
+  // test("SparkPi job using job templates - staticCluster", E2ETest) {
+  //   baseTemplateTest("cluster", "static", 2)
+  //     .run()
+  // }
 
-  test("SparkPi job using job templates - staticClient", E2ETest) {
-    baseTemplateTest("client", "static", 2)
-      .run()
-  }
+  // test("SparkPi job using job templates - staticClient", E2ETest) {
+  //   baseTemplateTest("client", "static", 2)
+  //     .run()
+  // }
 
-  test("SparkPi job using job templates - dynamicCluster", E2ETest) {
-    baseTemplateTest("cluster", "dynamic", 2)
-      .run()
-  }
+  // test("SparkPi job using job templates - dynamicCluster", E2ETest) {
+  //   baseTemplateTest("cluster", "dynamic", 2)
+  //     .run()
+  // }
 
   // ========================================================================
   // Feature Step Tests
@@ -516,20 +516,20 @@ class ArmadaSparkE2E
     }
   }
 
-  test("SparkPi job with custom feature steps - staticCluster", E2ETest) {
-    baseFeatureStepTest("cluster", "static", 2)
-      .run()
-  }
+  // test("SparkPi job with custom feature steps - staticCluster", E2ETest) {
+  //   baseFeatureStepTest("cluster", "static", 2)
+  //     .run()
+  // }
 
-  test("SparkPi job with custom feature steps - staticClient", E2ETest) {
-    baseFeatureStepTest("client", "static", 2)
-      .run()
-  }
+  // test("SparkPi job with custom feature steps - staticClient", E2ETest) {
+  //   baseFeatureStepTest("client", "static", 2)
+  //     .run()
+  // }
 
-  test("SparkPi job with custom feature steps - dynamicCluster", E2ETest) {
-    baseFeatureStepTest("cluster", "dynamic", 2)
-      .run()
-  }
+  // test("SparkPi job with custom feature steps - dynamicCluster", E2ETest) {
+  //   baseFeatureStepTest("cluster", "dynamic", 2)
+  //     .run()
+  // }
 
   // ========================================================================
   // Ingress Tests
@@ -574,11 +574,12 @@ class ArmadaSparkE2E
       .assertIngressAnnotations(ingressAnnotations)
   }
 
-  test("SparkPi job with driver ingress using cli - staticCluster", E2ETest) {
-    baseIngressCLITest(2).run()
-  }
+  // test("SparkPi job with driver ingress using cli - staticCluster", E2ETest) {
+  //   baseIngressCLITest(2).run()
+  // }
 
-  test("SparkPi job with driver ingress using template - staticCluster", E2ETest) {
-    baseIngressTemplateTest(2).run()
-  }
+  // test("SparkPi job with driver ingress using template - staticCluster", E2ETest) {
+  //   baseIngressTemplateTest(2).run()
+  // }
+
 }

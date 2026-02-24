@@ -2,7 +2,7 @@
 set -e
 
 echo Generating armada spark docker image.
-
+mvn --batch-mode -DskipTests install
 root="$(cd "$(dirname "$0")/.."; pwd)"
 scripts="$(cd "$(dirname "$0")"; pwd)"
 source "$scripts/init.sh"
@@ -67,3 +67,5 @@ docker build \
   --build-arg include_python=$INCLUDE_PYTHON \
   -f "$root/docker/Dockerfile" \
   "$root"
+
+docker push $IMAGE_NAME

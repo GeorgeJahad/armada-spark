@@ -17,7 +17,7 @@
 
 package org.apache.spark.deploy.armada.submit
 
-import api.submit.{IngressConfig, JobSubmitRequestItem}
+import api.submit.{IngressConfig, JobSubmitRequestItem, ServiceConfig, ServiceType}
 import k8s.io.api.core.v1.generated.{
   Container,
   EnvVar,
@@ -453,7 +453,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     val javaOptEnvVars = Seq(EnvVar().withName("SPARK_JAVA_OPT_0").withValue("-Xmx1g"))
@@ -620,7 +621,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     val resolvedConfig = armadaClientApp.ResolvedJobConfig(
@@ -901,7 +903,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     val result = armadaClientApp.mergeDriverTemplate(
@@ -1045,7 +1048,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     val result = armadaClientApp.mergeDriverTemplate(
@@ -1163,7 +1167,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     val runtimeAnnotations = Map("runtime-key" -> "runtime-value")
@@ -1262,7 +1267,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     val resolvedConfig = armadaClientApp.ResolvedJobConfig(
@@ -1376,7 +1382,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     val resolvedConfig = armadaClientApp.ResolvedJobConfig(
@@ -1503,7 +1510,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     val configGenerator = new ConfigGenerator(tempDir.toString, sparkConf)
@@ -1591,7 +1599,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     val configGenerator = new ConfigGenerator(tempDir.toString, sparkConf)
@@ -1683,7 +1692,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     sparkConf.set("spark.executor.instances", "0")
@@ -1723,7 +1733,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     sparkConf.set("spark.submit.deployMode", "cluster")
@@ -2039,7 +2050,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = None,
       driverFeatureStepContainer = None,
       executorFeatureStepJobItem = Some(featureStepJobItem),
-      executorFeatureStepContainer = Some(featureStepContainer)
+      executorFeatureStepContainer = Some(featureStepContainer),
+      executorFeatureStepServices = Seq.empty
     )
 
     val javaOptEnvVars = Seq(EnvVar().withName("SPARK_JAVA_OPT_0").withValue("-Xmx1g"))
@@ -2201,7 +2213,8 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
       driverFeatureStepJobItem = Some(featureStepJobItem),
       driverFeatureStepContainer = Some(featureStepContainer),
       executorFeatureStepJobItem = None,
-      executorFeatureStepContainer = None
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = Seq.empty
     )
 
     val javaOptEnvVars = Seq(EnvVar().withName("SPARK_JAVA_OPT_0").withValue("-Xmx1g"))
@@ -2406,6 +2419,185 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
     val cliIngress = armadaJobConfig.cliConfig.driverIngress.get
     cliIngress.annotations should contain("nginx.ingress.kubernetes.io/rewrite-target" -> "/")
     cliIngress.tls shouldBe Some(false)
+  }
+
+  test("mergeExecutorTemplate should include services from feature steps") {
+    val cliConfig = armadaClientApp.CLIConfig(
+      queue = Some("test-queue"),
+      jobSetId = Some("test-job-set"),
+      namespace = Some("test-namespace"),
+      priority = Some(RUNTIME_PRIORITY),
+      containerImage = Some(DEFAULT_IMAGE_NAME),
+      podLabels = Map.empty,
+      driverLabels = Map.empty,
+      executorLabels = Map.empty,
+      armadaClusterUrl = Some("armada://localhost:50051"),
+      nodeSelectors = Map.empty,
+      nodeUniformityLabel = None,
+      executorConnectionTimeout = Some(300.seconds),
+      runAsUser = None,
+      driverResources = armadaClientApp.ResourceConfig(None, None, None, None),
+      executorResources = armadaClientApp.ResourceConfig(
+        limitCores = Some("1"),
+        requestCores = Some("1"),
+        limitMemory = Some("1Gi"),
+        requestMemory = Some("1Gi")
+      )
+    )
+
+    val featureStepServices = Seq(
+      ServiceConfig(
+        `type` = ServiceType.Headless,
+        ports = Seq(7337),
+        name = "shuffle-service"
+      )
+    )
+
+    val armadaJobConfig = armadaClientApp.ArmadaJobConfig(
+      queue = "test-queue",
+      jobSetId = "test-job-set",
+      jobTemplate = None,
+      driverJobItemTemplate = None,
+      executorJobItemTemplate = None,
+      cliConfig = cliConfig,
+      applicationId = "armada-spark-app-id",
+      driverFeatureStepJobItem = None,
+      driverFeatureStepContainer = None,
+      executorFeatureStepJobItem = None,
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = featureStepServices
+    )
+
+    val resolvedConfig = armadaClientApp.ResolvedJobConfig(
+      namespace = "test-namespace",
+      priority = RUNTIME_PRIORITY,
+      containerImage = DEFAULT_IMAGE_NAME,
+      armadaClusterUrl = "armada://localhost:50051",
+      executorConnectionTimeout = 300.seconds,
+      runAsUser = DEFAULT_RUN_AS_USER,
+      annotations = Map.empty,
+      labels = Map.empty,
+      nodeSelectors = Map.empty,
+      driverResources = armadaClientApp.ResolvedResourceConfig(None, None, None, None),
+      executorResources = armadaClientApp.ResolvedResourceConfig(
+        limitCores = Some("1"),
+        requestCores = Some("1"),
+        limitMemory = Some("1Gi"),
+        requestMemory = Some("1Gi")
+      )
+    )
+
+    val result = armadaClientApp.mergeExecutorTemplate(
+      template = None,
+      resolvedConfig = resolvedConfig,
+      armadaJobConfig = armadaJobConfig,
+      javaOptEnvVars = Seq.empty,
+      driverHostname = "driver-service",
+      driverPort = 7078,
+      volumes = Seq.empty,
+      conf = sparkConf
+    )
+
+    result.services should have size 1
+    result.services.head.name shouldBe "shuffle-service"
+    result.services.head.ports shouldBe Seq(7337)
+    result.services.head.`type` shouldBe ServiceType.Headless
+  }
+
+  test("mergeExecutorTemplate should prefer template services over feature step services") {
+    val cliConfig = armadaClientApp.CLIConfig(
+      queue = Some("test-queue"),
+      jobSetId = Some("test-job-set"),
+      namespace = Some("test-namespace"),
+      priority = Some(RUNTIME_PRIORITY),
+      containerImage = Some(DEFAULT_IMAGE_NAME),
+      podLabels = Map.empty,
+      driverLabels = Map.empty,
+      executorLabels = Map.empty,
+      armadaClusterUrl = Some("armada://localhost:50051"),
+      nodeSelectors = Map.empty,
+      nodeUniformityLabel = None,
+      executorConnectionTimeout = Some(300.seconds),
+      runAsUser = None,
+      driverResources = armadaClientApp.ResourceConfig(None, None, None, None),
+      executorResources = armadaClientApp.ResourceConfig(
+        limitCores = Some("1"),
+        requestCores = Some("1"),
+        limitMemory = Some("1Gi"),
+        requestMemory = Some("1Gi")
+      )
+    )
+
+    val featureStepServices = Seq(
+      ServiceConfig(
+        `type` = ServiceType.Headless,
+        ports = Seq(7337),
+        name = "feature-step-service"
+      )
+    )
+
+    val templateServices = Seq(
+      ServiceConfig(
+        `type` = ServiceType.Headless,
+        ports = Seq(8080, 9090),
+        name = "template-service"
+      )
+    )
+
+    val template = JobSubmitRequestItem(
+      priority = TEMPLATE_PRIORITY,
+      namespace = "template-namespace",
+      services = templateServices
+    )
+
+    val armadaJobConfig = armadaClientApp.ArmadaJobConfig(
+      queue = "test-queue",
+      jobSetId = "test-job-set",
+      jobTemplate = None,
+      driverJobItemTemplate = None,
+      executorJobItemTemplate = Some(template),
+      cliConfig = cliConfig,
+      applicationId = "armada-spark-app-id",
+      driverFeatureStepJobItem = None,
+      driverFeatureStepContainer = None,
+      executorFeatureStepJobItem = None,
+      executorFeatureStepContainer = None,
+      executorFeatureStepServices = featureStepServices
+    )
+
+    val resolvedConfig = armadaClientApp.ResolvedJobConfig(
+      namespace = "test-namespace",
+      priority = RUNTIME_PRIORITY,
+      containerImage = DEFAULT_IMAGE_NAME,
+      armadaClusterUrl = "armada://localhost:50051",
+      executorConnectionTimeout = 300.seconds,
+      runAsUser = DEFAULT_RUN_AS_USER,
+      annotations = Map.empty,
+      labels = Map.empty,
+      nodeSelectors = Map.empty,
+      driverResources = armadaClientApp.ResolvedResourceConfig(None, None, None, None),
+      executorResources = armadaClientApp.ResolvedResourceConfig(
+        limitCores = Some("1"),
+        requestCores = Some("1"),
+        limitMemory = Some("1Gi"),
+        requestMemory = Some("1Gi")
+      )
+    )
+
+    val result = armadaClientApp.mergeExecutorTemplate(
+      template = Some(template),
+      resolvedConfig = resolvedConfig,
+      armadaJobConfig = armadaJobConfig,
+      javaOptEnvVars = Seq.empty,
+      driverHostname = "driver-service",
+      driverPort = 7078,
+      volumes = Seq.empty,
+      conf = sparkConf
+    )
+
+    result.services should have size 1
+    result.services.head.name shouldBe "template-service"
+    result.services.head.ports shouldBe Seq(8080, 9090)
   }
 
 }

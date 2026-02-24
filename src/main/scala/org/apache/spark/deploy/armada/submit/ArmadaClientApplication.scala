@@ -1281,6 +1281,15 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       templateVolumeMounts
     )(_.name)
 
+    val resolvedServices = template
+      .map(_.services)
+      .filter(_.nonEmpty)
+      .getOrElse(armadaJobConfig.executorFeatureStepServices)
+
+    val servicePorts = resolvedServices.flatMap(_.ports).map { port =>
+      ContainerPort(containerPort = Some(port), protocol = Some("TCP"))
+    }
+
     val executorContainer = newExecutorContainer(
       driverHostname,
       driverPort,
@@ -1289,6 +1298,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       armadaJobConfig,
       conf
     ).withVolumeMounts(mergedVolumeMounts)
+      .withPorts(servicePorts)
 
     val sidecars = extractSidecarContainers(baseJobItem.podSpec)
 
@@ -1341,10 +1351,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
         .map(_.annotations)
         .getOrElse(Map.empty) ++ resolvedConfig.annotations,
       podSpec = Some(finalPodSpec),
-      services = template
-        .map(_.services)
-        .filter(_.nonEmpty)
-        .getOrElse(armadaJobConfig.executorFeatureStepServices)
+      services = resolvedServices
     )
   }
 
@@ -1666,8 +1673,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
         .getOrElse(Seq.empty)
       api.submit.ServiceConfig(
         `type` = api.submit.ServiceType.Headless,
-        ports = ports,
-        name = Option(svc.getMetadata).flatMap(m => Option(m.getName)).getOrElse("")
+        ports = ports
       )
     }
   }

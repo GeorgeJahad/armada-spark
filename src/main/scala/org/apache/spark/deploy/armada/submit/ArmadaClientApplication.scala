@@ -298,10 +298,19 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       armadaJobConfig: ArmadaJobConfig,
       conf: SparkConf
   ): DriverData = {
-    // Apply system properties from driver feature steps (e.g. uploaded file URIs)
-    armadaJobConfig.driverSystemProperties.foreach { case (k, v) =>
-      conf.set(k, v)
-    }
+    // Apply only file-related system properties from driver feature steps.
+    // BasicDriverFeatureStep uploads local files to spark.kubernetes.file.upload.path
+    // and returns updated remote URIs for these keys. Other system properties
+    // (e.g. spark.driver.host, spark.driver.port) are managed by Armada directly.
+    val fileUploadKeys = Set(
+      "spark.jars",
+      "spark.files",
+      "spark.archives",
+      "spark.submit.pyFiles"
+    )
+    armadaJobConfig.driverSystemProperties
+      .filter { case (k, _) => fileUploadKeys.contains(k) }
+      .foreach { case (k, v) => conf.set(k, v) }
     val confSeq         = buildSparkConfArgs(conf)
     val configGenerator = new ConfigGenerator("armada-spark-config", conf)
 

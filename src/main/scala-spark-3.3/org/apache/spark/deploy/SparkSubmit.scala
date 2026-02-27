@@ -324,6 +324,9 @@ private[spark] class SparkSubmit extends Logging {
     val isKubernetesClient  = clusterManager == KUBERNETES && deployMode == CLIENT
     val isKubernetesClusterModeDriver = isKubernetesClient &&
       sparkConf.getBoolean("spark.kubernetes.submitInDriver", false)
+    val isArmadaClient = clusterManager == ARMADA && deployMode == CLIENT
+    val isArmadaClusterModeDriver = isArmadaClient &&
+      sparkConf.getBoolean("spark.kubernetes.submitInDriver", false)
     val isArmadaCluster = clusterManager == ARMADA && deployMode == CLUSTER
     val isCustomClasspathInClusterModeDisallowed =
       !sparkConf.get(ALLOW_CUSTOM_CLASSPATH_BY_PROXY_USER_IN_CLUSTER_MODE) &&
@@ -418,7 +421,7 @@ private[spark] class SparkSubmit extends Logging {
         downloadFileList(_, targetDir, sparkConf, hadoopConf)
       }.orNull
 
-      if (isKubernetesClusterModeDriver) {
+      if (isKubernetesClusterModeDriver || isArmadaClusterModeDriver) {
         // Replace with the downloaded local jar path to avoid propagating hadoop compatible uris.
         // Executors will get the jars from the Spark file server.
         // Explicitly download the related files here

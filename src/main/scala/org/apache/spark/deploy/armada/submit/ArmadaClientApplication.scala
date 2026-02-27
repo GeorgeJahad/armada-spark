@@ -225,6 +225,9 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
   ): ArmadaJobConfig = {
     // Disable ConfigMap creation as we do not have support for them in Armada
     conf.set("spark.kubernetes.executor.disableConfigMap", "true")
+    // Signal to SparkSubmit inside the driver pod that it should download
+    // remote files (from spark.kubernetes.file.upload.path) to working directory
+    conf.set("spark.kubernetes.submitInDriver", "true")
 
     val jobTemplate: Option[api.submit.JobSubmitRequest] = conf
       .get(ARMADA_JOB_TEMPLATE)

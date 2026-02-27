@@ -335,6 +335,9 @@ private[spark] class SparkSubmit extends Logging {
     val isKubernetesClient  = clusterManager == KUBERNETES && deployMode == CLIENT
     val isKubernetesClusterModeDriver = isKubernetesClient &&
       sparkConf.getBoolean("spark.kubernetes.submitInDriver", false)
+    val isArmadaClient = clusterManager == ARMADA && deployMode == CLIENT
+    val isArmadaClusterModeDriver = isArmadaClient &&
+      sparkConf.getBoolean("spark.kubernetes.submitInDriver", false)
     val isArmadaCluster = clusterManager == ARMADA && deployMode == CLUSTER
     val isCustomClasspathInClusterModeDisallowed =
       !sparkConf.get(ALLOW_CUSTOM_CLASSPATH_BY_PROXY_USER_IN_CLUSTER_MODE) &&
@@ -431,7 +434,7 @@ private[spark] class SparkSubmit extends Logging {
         downloadFileList(_, targetDir, sparkConf, hadoopConf)
       }.orNull
 
-      if (isKubernetesClusterModeDriver) {
+      if (isKubernetesClusterModeDriver || isArmadaClusterModeDriver) {
         // SPARK-33748: this mimics the behaviour of Yarn cluster mode. If the driver is running
         // in cluster mode, the archives should be available in the driver's current working
         // directory too.

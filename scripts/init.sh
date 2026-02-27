@@ -213,12 +213,12 @@ if [ "$INCLUDE_PYTHON" == "true" ]; then WITH_PYTHON="-python3"; else WITH_PYTHO
 image_tag="$SPARK_VERSION-scala$SCALA_BIN_VERSION-java${JAVA_VERSION:-17}$WITH_PYTHON-ubuntu"
 
 S3_CONF=()
-if [[ $ARMADA_S3_ACCESS_KEY != "" ]]; then
+if [[ ${ARMADA_S3_ACCESS_KEY-} != "" ]]; then
     S3_CONF=(
         --conf spark.hadoop.fs.s3a.access.key=$ARMADA_S3_ACCESS_KEY
         --conf spark.hadoop.fs.s3a.secret.key=$ARMADA_S3_SECRET_KEY
     )
-else if [[ $ARMADA_SPARK_SECRET_KEY != "" ]]; then
+else if [[ ${ARMADA_SPARK_SECRET_KEY-} != "" ]]; then
     S3_CONF=(
         --conf spark.kubernetes.driver.secretKeyRef.AWS_SECRET_ACCESS_KEY=$ARMADA_SPARK_SECRET_KEY:secret_key
         --conf spark.kubernetes.executor.secretKeyRef.AWS_SECRET_ACCESS_KEY=$ARMADA_SPARK_SECRET_KEY:secret_key

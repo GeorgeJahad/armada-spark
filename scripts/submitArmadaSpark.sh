@@ -88,6 +88,7 @@ SPARK_SUBMIT_ARGS=(
     --deploy-mode $DEPLOY_MODE
     --name $NAME
     $CLASS_PROMPT $CLASS_ARG
+    "${S3_CONF[@]}" \
     --conf spark.home=/opt/spark
     --conf spark.armada.container.image=$IMAGE_NAME
     --conf spark.armada.queue=$ARMADA_QUEUE

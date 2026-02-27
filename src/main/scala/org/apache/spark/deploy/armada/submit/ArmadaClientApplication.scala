@@ -826,7 +826,16 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       confSeq: Seq[String],
       conf: SparkConf
   ): api.submit.JobSubmitRequestItem = {
-    val driverArgs = confSeq ++ primaryResource ++ clientArguments.driverArgs
+    val featureStepContainer = armadaJobConfig.driverFeatureStepContainer
+    val resolvedPrimaryResource = resolveLocalFilesFromFeatureStep(
+      primaryResource,
+      featureStepContainer
+    )
+    val resolvedDriverArgs = resolveLocalFilesFromFeatureStep(
+      clientArguments.driverArgs.toSeq,
+      featureStepContainer
+    )
+    val driverArgs = confSeq ++ resolvedPrimaryResource ++ resolvedDriverArgs
 
     val driverJobItem = mergeDriverTemplate(
       armadaJobConfig.driverJobItemTemplate,
@@ -1766,6 +1775,43 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       case PythonMainAppResource(resource)     => Seq(resource)
       case RMainAppResource(resource)          => Seq(resource)
       case _                                   => Seq()
+    }
+  }
+
+  /** Known file extensions for local application files. */
+  private val localFileExtensions = Set(".jar", ".py", ".r", ".zip")
+
+  /** Returns true if the arg looks like a local file path (by extension). */
+  private def isLocalFile(arg: String): Boolean = {
+    val lower = arg.toLowerCase
+    localFileExtensions.exists(lower.endsWith)
+  }
+
+  /** Resolves local file paths in driver args using the feature step container's args.
+    *
+    * When Spark's feature steps process the driver pod, they may transform file paths (e.g.,
+    * resolving them to container-local paths). This method matches local files in
+    * `clientDriverArgs` to their counterparts in the feature step container's args by basename, and
+    * returns the feature step's version when a match is found.
+    */
+  private[submit] def resolveLocalFilesFromFeatureStep(
+      clientDriverArgs: Seq[String],
+      featureStepContainer: Option[Container]
+  ): Seq[String] = {
+    featureStepContainer match {
+      case None => clientDriverArgs
+      case Some(container) =>
+        val featureStepFilesByName = container.args
+          .filter(isLocalFile)
+          .map(f => f.split("/").last -> f)
+          .toMap
+        clientDriverArgs.map { arg =>
+          if (isLocalFile(arg)) {
+            featureStepFilesByName.getOrElse(arg.split("/").last, arg)
+          } else {
+            arg
+          }
+        }
     }
   }
 

@@ -1572,6 +1572,65 @@ class ArmadaClientApplicationSuite extends AnyFunSuite with BeforeAndAfter with 
     result.services should have size 1
   }
 
+  test("resolveLocalFilesFromFeatureStep replaces local files by basename") {
+    val featureStepContainer = Container()
+      .withArgs(
+        Seq(
+          "driver",
+          "--properties-file",
+          "/opt/spark/conf/spark.properties",
+          "--class",
+          "org.apache.spark.deploy.PythonRunner",
+          "local:///opt/spark/work/pi.py",
+          "local:///opt/spark/work/utils.zip"
+        )
+      )
+
+    val result = armadaClientApp.resolveLocalFilesFromFeatureStep(
+      Seq("pi.py", "utils.zip", "--input", "data.txt"),
+      Some(featureStepContainer)
+    )
+
+    result shouldBe Seq(
+      "local:///opt/spark/work/pi.py",
+      "local:///opt/spark/work/utils.zip",
+      "--input",
+      "data.txt"
+    )
+  }
+
+  test("resolveLocalFilesFromFeatureStep returns original args when no container") {
+    val args = Seq("script.py", "--input", "data.txt")
+
+    val result = armadaClientApp.resolveLocalFilesFromFeatureStep(args, None)
+
+    result shouldBe args
+  }
+
+  test("resolveLocalFilesFromFeatureStep preserves non-file args unchanged") {
+    val featureStepContainer = Container()
+      .withArgs(Seq("driver", "local:///opt/spark/work/app.jar"))
+
+    val result = armadaClientApp.resolveLocalFilesFromFeatureStep(
+      Seq("--verbose", "--conf", "k=v"),
+      Some(featureStepContainer)
+    )
+
+    result shouldBe Seq("--verbose", "--conf", "k=v")
+  }
+
+  test("resolveLocalFilesFromFeatureStep keeps original when no basename match") {
+    val featureStepContainer = Container()
+      .withArgs(Seq("driver", "local:///opt/spark/work/other.jar"))
+
+    val result = armadaClientApp.resolveLocalFilesFromFeatureStep(
+      Seq("app.jar", "--input", "data.txt"),
+      Some(featureStepContainer)
+    )
+
+    result shouldBe Seq("app.jar", "--input", "data.txt")
+  }
+
   test("createExecutorJobs should create multiple executor jobs") {
     val cliConfig = armadaClientApp.CLIConfig(
       queue = Some("test-queue"),

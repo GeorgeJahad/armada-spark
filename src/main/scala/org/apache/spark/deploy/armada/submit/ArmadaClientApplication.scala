@@ -262,7 +262,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       .getOrElse(getApplicationId(conf))
 
     // Get basic feature steps from Spark's Kubernetes integration
-    val (driverJobItem, driverContainer)     = getDriverFeatureSteps(conf, clientArguments)
+    val (driverJobItem, driverContainer, driverSysProps) =
+      getDriverFeatureSteps(conf, clientArguments)
     val (executorJobItem, executorContainer) = getExecutorFeatureSteps(conf)
 
     ArmadaJobConfig(
@@ -276,7 +277,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       driverFeatureStepJobItem = driverJobItem,
       driverFeatureStepContainer = driverContainer,
       executorFeatureStepJobItem = executorJobItem,
-      executorFeatureStepContainer = executorContainer
+      executorFeatureStepContainer = executorContainer,
+      driverSystemProperties = driverSysProps
     )
   }
 
@@ -293,6 +295,10 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       armadaJobConfig: ArmadaJobConfig,
       conf: SparkConf
   ): DriverData = {
+    // Apply system properties from driver feature steps (e.g. uploaded file URIs)
+    armadaJobConfig.driverSystemProperties.foreach { case (k, v) =>
+      conf.set(k, v)
+    }
     val confSeq         = buildSparkConfArgs(conf)
     val configGenerator = new ConfigGenerator("armada-spark-config", conf)
 
@@ -795,7 +801,8 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       driverFeatureStepJobItem: Option[api.submit.JobSubmitRequestItem],
       driverFeatureStepContainer: Option[Container],
       executorFeatureStepJobItem: Option[api.submit.JobSubmitRequestItem],
-      executorFeatureStepContainer: Option[Container]
+      executorFeatureStepContainer: Option[Container],
+      driverSystemProperties: Map[String, String]
   )
 
   private[submit] def createDriverJob(
@@ -1082,9 +1089,9 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
   private[spark] def getDriverFeatureSteps(
       conf: SparkConf,
       clientArguments: Option[ClientArguments]
-  ): (Option[JobSubmitRequestItem], Option[Container]) = {
+  ): (Option[JobSubmitRequestItem], Option[Container], Map[String, String]) = {
     clientArguments match {
-      case None => (None, None)
+      case None => (None, None, Map.empty)
       case Some(args) =>
         val appId = getApplicationId(conf)
 
@@ -1104,7 +1111,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
         val jobItem   = fabric8PodToJobItem(driverSpec.pod.pod)
         val container = PodSpecConverter.convertContainer(driverSpec.pod.container)
 
-        (Some(jobItem), Some(container))
+        (Some(jobItem), Some(container), driverSpec.systemProperties)
     }
   }
 

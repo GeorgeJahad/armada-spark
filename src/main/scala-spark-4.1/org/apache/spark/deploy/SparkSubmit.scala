@@ -790,18 +790,18 @@ private[spark] class SparkSubmit extends Logging {
       ),
       OptionAssigner(
         args.files,
-        LOCAL | STANDALONE | KUBERNETES,
+        LOCAL | STANDALONE | KUBERNETES | ARMADA,
         ALL_DEPLOY_MODES,
         confKey = FILES.key
       ),
       OptionAssigner(
         args.archives,
-        LOCAL | STANDALONE | KUBERNETES,
+        LOCAL | STANDALONE | KUBERNETES | ARMADA,
         ALL_DEPLOY_MODES,
         confKey = ARCHIVES.key
       ),
       OptionAssigner(args.jars, LOCAL, CLIENT, confKey = JARS.key),
-      OptionAssigner(args.jars, STANDALONE | KUBERNETES, ALL_DEPLOY_MODES, confKey = JARS.key),
+      OptionAssigner(args.jars, STANDALONE | KUBERNETES | ARMADA, ALL_DEPLOY_MODES, confKey = JARS.key),
       OptionAssigner(
         args.driverMemory,
         STANDALONE | YARN | KUBERNETES,

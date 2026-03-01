@@ -77,6 +77,7 @@ import org.apache.spark.deploy.k8s.submit.{
 import org.apache.spark.deploy.k8s.{KubernetesDriverConf, KubernetesExecutorConf}
 import org.apache.spark.deploy.k8s.Config.{
   CONTAINER_IMAGE => KUBERNETES_CONTAINER_IMAGE,
+  KUBERNETES_FILE_UPLOAD_PATH,
   KUBERNETES_SUBMIT_GRACE_PERIOD
 }
 import org.apache.spark.{SecurityManager, SparkConf}
@@ -1116,12 +1117,22 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
       case Some(args) =>
         val appId = getApplicationId(conf)
 
+        // Only pass the real mainAppResource when upload path is configured,
+        // so DriverCommandFeatureStep can upload local files to remote storage.
+        // When upload path is not set, use None to avoid SparkException from
+        // DriverCommandFeatureStep trying to upload without a destination.
+        val appResource = if (conf.get(KUBERNETES_FILE_UPLOAD_PATH).isDefined) {
+          args.mainAppResource
+        } else {
+          JavaMainAppResource(None)
+        }
+
         // Clone conf to prevent feature step builders from mutating the original
         val driverSpec = new KubernetesDriverBuilder().buildFromFeatures(
           new KubernetesDriverConf(
             sparkConf = conf.clone(),
             appId = appId,
-            mainAppResource = args.mainAppResource,
+            mainAppResource = appResource,
             mainClass = args.mainClass,
             appArgs = args.driverArgs,
             proxyUser = args.proxyUser

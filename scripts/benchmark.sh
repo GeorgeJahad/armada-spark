@@ -15,22 +15,6 @@ TESTS_TO_RUN=$MULTIPLE_TESTS
 
 JOBSET="${JOBSET:-armada-spark-benchmark}"
 
-S3_CONF=()
-if [[ $ARMADA_S3_ACCESS_KEY != "" ]]; then
-    S3_CONF=(
-        --conf spark.hadoop.fs.s3a.access.key=$ARMADA_S3_ACCESS_KEY
-        --conf spark.hadoop.fs.s3a.secret.key=$ARMADA_S3_SECRET_KEY
-    )
-else if [[ $ARMADA_SPARK_SECRET_KEY != "" ]]; then
-    S3_CONF=(
-        --conf spark.kubernetes.driver.secretKeyRef.AWS_SECRET_ACCESS_KEY=$ARMADA_SPARK_SECRET_KEY:secret_key
-        --conf spark.kubernetes.executor.secretKeyRef.AWS_SECRET_ACCESS_KEY=$ARMADA_SPARK_SECRET_KEY:secret_key
-        --conf spark.kubernetes.driver.secretKeyRef.AWS_ACCESS_KEY_ID=$ARMADA_SPARK_SECRET_KEY:access_key
-        --conf spark.kubernetes.executor.secretKeyRef.AWS_ACCESS_KEY_ID=$ARMADA_SPARK_SECRET_KEY:access_key
-    )
-     fi
-fi
-
 # Run Armada Spark via docker image
 docker run "${DOCKER_ENV_ARGS[@]}" -v $scripts/../benchmark:/opt/spark/conf --rm --network host $IMAGE_NAME \
     /opt/spark/bin/spark-submit \

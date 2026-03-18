@@ -192,7 +192,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
     val armadaJobConfig = validateArmadaJobConfig(sparkConf, Some(clientArguments))
 
     val (host, port) = ArmadaUtils.parseMasterUrl(sparkConf.get("spark.master"))
-    log(s"Connecting to Armada Server - host: $host, port: $port")
+    log(s"gbj1Connecting to Armada Server - host: $host, port: $port")
 
     val armadaClient =
       ArmadaClient(host, port, useSsl = false, ArmadaUtils.getAuthToken(Some(sparkConf)))
@@ -870,6 +870,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
         armadaJobConfig,
         javaOptEnvVars(conf),
         driverHostname,
+
         conf.getInt(DRIVER_PORT.key, ArmadaClientApplication.DRIVER_PORT),
         configGenerator.getVolumes,
         conf
@@ -1385,6 +1386,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           .orElse(templateResources.flatMap(_.limits.get("memory")))
           .getOrElse(Quantity(Option(DEFAULT_MEM)))
       },
+      "ephemeral-storage" -> Quantity(Option("200Gi")),
       "cpu" -> {
         armadaJobConfig.cliConfig.driverResources.limitCores
           .map(value => Quantity(Option(value)))
@@ -1400,6 +1402,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           .orElse(templateResources.flatMap(_.requests.get("memory")))
           .getOrElse(Quantity(Option(DEFAULT_MEM)))
       },
+      "ephemeral-storage" -> Quantity(Option("200Gi")),
       "cpu" -> {
         armadaJobConfig.cliConfig.driverResources.requestCores
           .map(value => Quantity(Option(value)))
@@ -1510,6 +1513,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           .orElse(templateResources.flatMap(_.limits.get("memory")))
           .getOrElse(Quantity(Option(DEFAULT_MEM)))
       },
+      "ephemeral-storage" -> Quantity(Option("200Gi")),
       "cpu" -> {
         armadaJobConfig.cliConfig.executorResources.limitCores
           .map(value => Quantity(Option(value)))
@@ -1525,6 +1529,7 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
           .orElse(templateResources.flatMap(_.requests.get("memory")))
           .getOrElse(Quantity(Option(DEFAULT_MEM)))
       },
+      "ephemeral-storage" -> Quantity(Option("200Gi")),
       "cpu" -> {
         armadaJobConfig.cliConfig.executorResources.requestCores
           .map(value => Quantity(Option(value)))

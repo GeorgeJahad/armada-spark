@@ -870,7 +870,6 @@ private[spark] class ArmadaClientApplication extends SparkApplication {
         armadaJobConfig,
         javaOptEnvVars(conf),
         driverHostname,
-
         conf.getInt(DRIVER_PORT.key, ArmadaClientApplication.DRIVER_PORT),
         configGenerator.getVolumes,
         conf

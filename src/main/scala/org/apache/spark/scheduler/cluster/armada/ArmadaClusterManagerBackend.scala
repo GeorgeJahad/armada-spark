@@ -467,6 +467,18 @@ private[spark] class ArmadaClusterManagerBackend(
     logInfo(s"Executor $executorId (job $jobId) is running")
   }
 
+  /** Exit codes that indicate infrastructure-initiated termination rather than application failure.
+    * 137 = SIGKILL (128+9), 143 = SIGTERM (128+15), -1 = no container status available.
+    */
+  private val infrastructureExitCodes: Set[Int] = Set(137, 143, -1)
+
+  /** Returns true when the exit code indicates the application itself caused the failure, as
+    * opposed to infrastructure-initiated termination (e.g. SIGKILL, SIGTERM, or missing container
+    * status).
+    */
+  private[armada] def isExitCausedByApp(exitCode: Int): Boolean =
+    exitCode != 0 && !infrastructureExitCodes.contains(exitCode)
+
   /** Called by event watcher when executor job fails
     */
   private[armada] def onExecutorFailed(
@@ -478,7 +490,7 @@ private[spark] class ArmadaClusterManagerBackend(
 
     val exitReason = ExecutorExited(
       exitCode,
-      exitCausedByApp = exitCode != 0,
+      exitCausedByApp = isExitCausedByApp(exitCode),
       s"Armada job $jobId failed: $reason"
     )
 

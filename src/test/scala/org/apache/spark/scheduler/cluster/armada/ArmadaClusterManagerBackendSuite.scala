@@ -254,6 +254,28 @@ class ArmadaClusterManagerBackendSuite extends AnyFunSuite with BeforeAndAfter w
     }
   }
 
+  test("isExitCausedByApp returns true for application exit codes") {
+    backend.isExitCausedByApp(1) shouldBe true
+    backend.isExitCausedByApp(2) shouldBe true
+    backend.isExitCausedByApp(127) shouldBe true
+  }
+
+  test("isExitCausedByApp returns false for SIGKILL (137)") {
+    backend.isExitCausedByApp(137) shouldBe false
+  }
+
+  test("isExitCausedByApp returns false for SIGTERM (143)") {
+    backend.isExitCausedByApp(143) shouldBe false
+  }
+
+  test("isExitCausedByApp returns false for exit code 0") {
+    backend.isExitCausedByApp(0) shouldBe false
+  }
+
+  test("isExitCausedByApp returns false for unknown exit code -1") {
+    backend.isExitCausedByApp(-1) shouldBe false
+  }
+
   // Use multiple threads to terminate half the jobs, then confirm the number
   // of remaining active ones.
   test("thread safety of terminal executor tracking") {

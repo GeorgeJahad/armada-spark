@@ -34,8 +34,9 @@ cd $repo_dir
 git checkout $branch
 
 export SPARK_HOME=`pwd`
-./build/mvn clean install --batch-mode -Dscalastyle.skip=true -DskipTests  -Pkubernetes -Phadoop-cloud -Pscala-2.12
-./bin/docker-image-tool.sh -u 185 -t "spark.dss.img"  -p ./resource-managers/kubernetes/docker/src/main/dockerfiles/spark/bindings/python/Dockerfile build
+DSS_IMAGE_TAG="spark.dss${SPARK_VERSION}.img"
+./build/mvn clean install --batch-mode -Dscalastyle.skip=true -DskipTests  -Pkubernetes -Phadoop-cloud -Pscala-$SCALA_BIN_VERSION
+./bin/docker-image-tool.sh -u 185 -t "$DSS_IMAGE_TAG"  -p ./resource-managers/kubernetes/docker/src/main/dockerfiles/spark/bindings/python/Dockerfile build
 cd ..
 
 # build the benchmarking tools
@@ -50,10 +51,13 @@ popd
 
 # get the benchmark jar files
 mkdir jars
-if [ `basename $ARMADA_BENCHMARK_JAR` == "armada-eks-spark-benchmark-assembly-1.0.jar" ]; then
+benchmark_jar_basename=$(basename "$ARMADA_BENCHMARK_JAR")
+if [[ "$SPARK_VERSION" != "4."* ]]; then
     # this was built from https://github.com/GeorgeJahad/eks-spark-benchmark/tree/hashOutput
     wget --no-check-certificate "https://drive.google.com/uc?export=download&id=1fjGRrLmbLygqdP-ugoTHLUbNMkTTxvcO" \
-         -O  jars/armada-eks-spark-benchmark-assembly-1.0.jar
+         -O  "jars/$benchmark_jar_basename"
+else
+    cp "/tmp/$benchmark_jar_basename" jars/
 fi
 
 # Copy the cert file into the docker dir and add docker commands to import it
@@ -68,14 +72,14 @@ if [[ $ARMADA_SKIP_CERT != "true" ]]; then
     echo copying $1
     cp $1 ca.crt
     IMPORT_CERT_COMMANDS="COPY ca.crt /tmp/ca.crt
-RUN keytool -importcert -file /tmp/ca.crt -keystore /opt/java/openjdk/lib/security/cacerts -alias mycert -storepass changeit -noprompt"
+RUN keytool -importcert -file /tmp/ca.crt -keystore \$(find / -name cacerts -type f 2>/dev/null | head -1) -alias mycert -storepass changeit -noprompt"
 else
     IMPORT_CERT_COMMANDS=""
 fi
 
 git -C ../$repo_dir rev-parse HEAD > BUILD-COMMIT
 cat <<EOF > Dockerfile
-FROM spark-py:spark.dss.img
+FROM spark-py:$DSS_IMAGE_TAG
 
 # Reset to root to run installation tasks
 USER 0
@@ -87,5 +91,11 @@ COPY BUILD-COMMIT /opt/spark/BUILD-COMMIT
 $IMPORT_CERT_COMMANDS
 EOF
 
-docker build --tag spark-py:spark.dss.img2 .
+docker build --tag spark-py:${DSS_IMAGE_TAG}2 .
+
+echo ""
+echo "DSS image built: spark-py:${DSS_IMAGE_TAG}2"
+echo "To use this image, set in scripts/config.sh:"
+echo "  DSS_PREFIX=spark-py"
+echo "  DSS_TAG=${DSS_IMAGE_TAG}2"
 

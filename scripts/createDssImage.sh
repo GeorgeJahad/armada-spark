@@ -35,6 +35,13 @@ git checkout $branch
 
 export SPARK_HOME=`pwd`
 DSS_IMAGE_TAG="spark.dss${SPARK_VERSION}.img"
+# Fix deprecated openjdk base image - use eclipse-temurin:11-jammy instead.
+spark_dockerfile="resource-managers/kubernetes/docker/src/main/dockerfiles/spark/Dockerfile"
+if [ -f "$spark_dockerfile" ]; then
+    sed -i -e 's|FROM openjdk:|FROM eclipse-temurin:|g' "$spark_dockerfile"
+    sed -i -E 's/^ARG java_image_tag=11-jre-slim$/ARG java_image_tag=11-jammy/' "$spark_dockerfile"
+fi
+./dev/change-scala-version.sh $SCALA_BIN_VERSION
 ./build/mvn clean install --batch-mode -Dscalastyle.skip=true -DskipTests  -Pkubernetes -Phadoop-cloud -Pscala-$SCALA_BIN_VERSION
 ./bin/docker-image-tool.sh -u 185 -t "$DSS_IMAGE_TAG"  -p ./resource-managers/kubernetes/docker/src/main/dockerfiles/spark/bindings/python/Dockerfile build
 cd ..

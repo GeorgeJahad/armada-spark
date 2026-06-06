@@ -35,11 +35,17 @@ git checkout $branch
 
 export SPARK_HOME=`pwd`
 DSS_IMAGE_TAG="spark.dss${SPARK_VERSION}.img"
-# Fix deprecated openjdk base image - use eclipse-temurin:11-jammy instead.
+# Fix deprecated openjdk base image - use eclipse-temurin instead.
 spark_dockerfile="resource-managers/kubernetes/docker/src/main/dockerfiles/spark/Dockerfile"
 if [ -f "$spark_dockerfile" ]; then
     sed -i -e 's|FROM openjdk:|FROM eclipse-temurin:|g' "$spark_dockerfile"
-    sed -i -E 's/^ARG java_image_tag=11-jre-slim$/ARG java_image_tag=11-jammy/' "$spark_dockerfile"
+    sed -i -e 's|FROM azul/zulu-openjdk:|FROM eclipse-temurin:|g' "$spark_dockerfile"
+    sed -i -e 's|^ARG java_image_name=.*|ARG java_image_name=eclipse-temurin|' "$spark_dockerfile"
+    if [[ "$SPARK_VERSION" == "4."* ]]; then
+        sed -i -E 's/^ARG java_image_tag=.+$/ARG java_image_tag=17-jammy/' "$spark_dockerfile"
+    else
+        sed -i -E 's/^ARG java_image_tag=.+$/ARG java_image_tag=11-jammy/' "$spark_dockerfile"
+    fi
 fi
 ./dev/change-scala-version.sh $SCALA_BIN_VERSION
 ./build/mvn clean install --batch-mode -Dscalastyle.skip=true -DskipTests  -Pkubernetes -Phadoop-cloud -Pscala-$SCALA_BIN_VERSION
@@ -59,13 +65,9 @@ popd
 # get the benchmark jar files
 mkdir jars
 benchmark_jar_basename=$(basename "$ARMADA_BENCHMARK_JAR")
-if [[ "$SPARK_VERSION" != "4."* ]]; then
-    # this was built from https://github.com/GeorgeJahad/eks-spark-benchmark/tree/hashOutput
-    wget --no-check-certificate "https://drive.google.com/uc?export=download&id=1fjGRrLmbLygqdP-ugoTHLUbNMkTTxvcO" \
-         -O  "jars/$benchmark_jar_basename"
-else
-    cp "/tmp/$benchmark_jar_basename" jars/
-fi
+# built from https://github.com/GeorgeJahad/eks-spark-benchmark/tree/hashOutput
+wget --no-check-certificate "https://drive.google.com/uc?export=download&id=$ARMADA_BENCHMARK_JAR_ID" \
+     -O  "jars/$benchmark_jar_basename"
 
 # Copy the cert file into the docker dir and add docker commands to import it
 # The cert file is need for clusters using TLS with self signed certs

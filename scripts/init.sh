@@ -275,24 +275,20 @@ if [[ -z "${SPARK_VERSION:-}" ]]; then
 fi
 
 # When using DSS, validate Spark version + Scala version against known DSS base
-# images and set DSS_PREFIX/DSS_TAG defaults plus the benchmark assembly jar
-# baked into the image by createDssImage.sh.
+# images and set DSS_PREFIX/DSS_TAG defaults
 if [ "$USE_DISTRIBUTED_SHUFFLE_STORAGE" = "true" ]; then
     case "${SPARK_VERSION}:${SCALA_BIN_VERSION}" in
         3.3.4:2.12)
-            DSS_PREFIX=${DSS_PREFIX:-gbj262}
-            DSS_TAG=${DSS_TAG:-dss-3.3.4-1}
-            ARMADA_BENCHMARK_JAR=${ARMADA_BENCHMARK_JAR:-local:///opt/spark/jars/armada-eks-spark-benchmark-assembly-1.0.jar}
+            DSS_PREFIX=${DSS_PREFIX:-gbj262/dss-334-1}
+            DSS_TAG=${DSS_TAG:-latest}
             ;;
         3.5.3:2.12)
-            DSS_PREFIX=${DSS_PREFIX:-gbj262}
-            DSS_TAG=${DSS_TAG:-dss-3.5.3-1}
-            ARMADA_BENCHMARK_JAR=${ARMADA_BENCHMARK_JAR:-local:///opt/spark/jars/armada-eks-spark-benchmark-assembly-1.0.jar}
+            DSS_PREFIX=${DSS_PREFIX:-gbj262/dss-353-1}
+            DSS_TAG=${DSS_TAG:-latest}
             ;;
         4.1.1:2.13)
-            DSS_PREFIX=${DSS_PREFIX:-gbj262}
-            DSS_TAG=${DSS_TAG:-dss-4.1.1-1}
-            ARMADA_BENCHMARK_JAR=${ARMADA_BENCHMARK_JAR:-local:///opt/spark/jars/eks-spark-benchmark-assembly-1.0.jar}
+            DSS_PREFIX=${DSS_PREFIX:-gbj262/dss-411-1}
+            DSS_TAG=${DSS_TAG:-latest}
             ;;
         *)
             echo "Error: unsupported Spark/Scala combination for DSS: ${SPARK_VERSION} / ${SCALA_BIN_VERSION}"
@@ -302,9 +298,15 @@ if [ "$USE_DISTRIBUTED_SHUFFLE_STORAGE" = "true" ]; then
     export DSS_PREFIX DSS_TAG
 fi
 
-# Fallback benchmark jar default for non-DSS mode
-ARMADA_BENCHMARK_JAR=${ARMADA_BENCHMARK_JAR:-local:///opt/spark/jars/armada-eks-spark-benchmark-assembly-1.0.jar}
-export ARMADA_BENCHMARK_JAR
+# Benchmark jar and download ID, keyed by Spark major version
+if [[ "$SPARK_VERSION" == "4."* ]]; then
+    ARMADA_BENCHMARK_JAR=${ARMADA_BENCHMARK_JAR:-local:///opt/spark/jars/armada-eks-spark-benchmark-assembly-411-1.0.jar}
+    ARMADA_BENCHMARK_JAR_ID=${ARMADA_BENCHMARK_JAR_ID:-1fxbOFli52VQQyK2IX2WxEW1XAjWRU4XX}
+else
+    ARMADA_BENCHMARK_JAR=${ARMADA_BENCHMARK_JAR:-local:///opt/spark/jars/armada-eks-spark-benchmark-assembly-353-1.0.jar}
+    ARMADA_BENCHMARK_JAR_ID=${ARMADA_BENCHMARK_JAR_ID:-1fjGRrLmbLygqdP-ugoTHLUbNMkTTxvcO}
+fi
+export ARMADA_BENCHMARK_JAR ARMADA_BENCHMARK_JAR_ID
 export CLASS_PATH="${CLASS_PATH:-local:///opt/spark/examples/jars/spark-examples.jar}"
 
 # check the Spark version is supported

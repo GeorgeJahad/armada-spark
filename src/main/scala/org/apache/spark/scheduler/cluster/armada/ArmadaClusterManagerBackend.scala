@@ -324,7 +324,7 @@ private[spark] class ArmadaClusterManagerBackend(
     // their loss reason to ExecutorKilled — otherwise ExecutorMonitor counts the clean exit as
     // "unexpectedly exited".
     Utils.tryLogNonFatalError {
-      getExecutorIds().foreach(id => executorsPendingToRemove.put(id, true))
+      markPendingToRemove(getExecutorIds())
       stopExecutors()
     }
 
@@ -396,7 +396,7 @@ private[spark] class ArmadaClusterManagerBackend(
     if (executorIds.nonEmpty) {
       // Mark as driver-killed before Armada terminates the pods, so the resulting disconnect is
       // classified as a deliberate kill rather than "unexpectedly exited".
-      executorIds.foreach(id => executorsPendingToRemove.put(id, true))
+      markPendingToRemove(executorIds)
       cancelArmadaJobs(executorIds, "Spark application stopping - cancelling executors")
     } else {
       logInfo(s"No executor jobs to cancel")
@@ -440,9 +440,9 @@ private[spark] class ArmadaClusterManagerBackend(
     // Send RPC kill signal to executors. Pre-mark in executorsPendingToRemove so the parent class
     // rewrites the loss reason to ExecutorKilled — otherwise ExecutorMonitor counts the kill as
     // "unexpectedly exited".
+    executorIds.foreach(markTerminal)
+    markPendingToRemove(executorIds)
     executorIds.foreach { id =>
-      markTerminal(id)
-      executorsPendingToRemove.put(id, true)
       safeRemoveExecutor(
         id,
         ExecutorExited(-1, exitCausedByApp = false, "Executor killed by Spark")
@@ -529,7 +529,7 @@ private[spark] class ArmadaClusterManagerBackend(
     */
   private[armada] def onExecutorSucceeded(jobId: String, executorId: String): Unit = {
     markTerminal(executorId)
-    executorsPendingToRemove.put(executorId, true)
+    markPendingToRemove(Seq(executorId))
     val exitReason = ExecutorExited(
       0,
       exitCausedByApp = false,
@@ -563,6 +563,14 @@ private[spark] class ArmadaClusterManagerBackend(
       case NonFatal(e) =>
         logDebug(s"Could not remove executor $executorId (likely shutdown): ${e.getMessage}")
     }
+  }
+
+  /** Mark executors as deliberately killed by the driver so
+    * CoarseGrainedSchedulerBackend.removeExecutor rewrites their loss reason to ExecutorKilled.
+    * executorsPendingToRemove is @GuardedBy the backend lock, so mutate it under that lock.
+    */
+  private def markPendingToRemove(executorIds: Iterable[String]): Unit = synchronized {
+    executorIds.foreach(id => executorsPendingToRemove.put(id, true))
   }
 
   /** Mark an executor as having reached a terminal state and clean it from pending set.
@@ -718,13 +726,19 @@ private[spark] class ArmadaClusterManagerBackend(
       val execId = addressToExecutorId.get(rpcAddress)
       execId match {
         case Some(id) =>
-          if (executorsPendingDecommission.contains(id)) {
+          // Both maps are @GuardedBy the backend lock, and other threads (shutdown, event
+          // watcher) mutate them concurrently with this endpoint thread.
+          val (pendingDecommission, pendingRemove) =
+            ArmadaClusterManagerBackend.this.synchronized {
+              (executorsPendingDecommission.contains(id), executorsPendingToRemove.contains(id))
+            }
+          if (pendingDecommission) {
             // Expected disconnection during decommissioning. Parent rewrites the reason from
             // executorsPendingDecommission, but pass ExecutorDecommission anyway so the call is
             // self-documenting.
             logDebug(s"Executor $id disconnected during decommissioning")
             safeRemoveExecutor(id, ExecutorDecommission(None))
-          } else if (executorsPendingToRemove.contains(id)) {
+          } else if (pendingRemove) {
             // Expected disconnection: we pre-marked this executor for removal (shutdown,
             // doKillExecutors, or onExecutorSucceeded). Remove it now so the loss reason gets
             // rewritten to ExecutorKilled by CoarseGrainedSchedulerBackend.
